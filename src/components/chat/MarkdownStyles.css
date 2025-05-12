@@ -1,0 +1,93 @@
+/* src/ui-kit/components/chat/MarkdownStyles.css */
+.markdown-content {
+  font-family: 'Georgia', serif;
+}
+
+.markdown-content p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-content h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.markdown-content h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.markdown-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  color: #111827;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.3em;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #e9d5ff;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #4b5563;
+}
+
+.markdown-content a {
+  color: #8b5cf6;
+  text-decoration: underline;
+}
+
+.markdown-content pre {
+  background-color: #f1f5f9;
+  padding: 1em;
+  border-radius: 6px;
+  overflow: auto;
+  margin: 1em 0;
+}
+
+.markdown-content code {
+  background-color: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #3b82f6;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: #f8fafc;
+  font-weight: 600;
+}
