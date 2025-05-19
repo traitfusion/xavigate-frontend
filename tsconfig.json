@@ -15,7 +15,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["react", "node"],
+    "types": ["react", "node", "vite/client"],
     "baseUrl": "src",
     "paths": {
       "@/*": ["*"],
@@ -23,5 +23,5 @@
       "@/app/*": ["app/*"]
     }
   },
-  "include": ["src", "scripts"]
+  "include": ["src", "scripts", "src/vite-env.d.ts"]
 }

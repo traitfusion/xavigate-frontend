@@ -10,6 +10,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       disabled={disabled}
       style={{
+        boxSizing: 'border-box',
         width: '100%',
         padding: `${SPACING.sm} ${SPACING.md}`,
         fontSize: FONT_SIZES.base,

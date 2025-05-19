@@ -1,26 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import MessageItem from './MessageItem';
 import ThinkingIndicator from './ThinkingIndicator';
 import WelcomeScreen from './WelcomeScreen';
 import ChatInput from './ChatInput';
 import AnimationStyles from './AnimationStyles';
-
 import { Message } from './types';
 import { getTimestamp, getOrCreateUserUUID } from './utils';
+import { fetchUserProfile } from '@/api/fetchUserProfile';
 
+// Base URL for backend API gateway (uses proxy in development to bypass CORS)
+const BASE_URL = '/api';
+
+// Remove unused interface to fix the warning
 export interface RagChatViewProps {}
 
 export default function RagChatView(props: RagChatViewProps) {
-  const { idToken } = useAuth();
   const navigate = useNavigate();
+  const { user, idToken } = useAuth();
+  const { t } = useTranslation();
+  // Profile and test status
+  const [profile, setProfile] = useState<{ traitScores: Record<string, any> }>({ traitScores: {} });
+  const [profileLoading, setProfileLoading] = useState<boolean>(true);
+
+  // Load user profile to check if MN test has been taken
+  useEffect(() => {
+    if (!user?.uuid) return;
+    (async () => {
+      setProfileLoading(true);
+      const prof = await fetchUserProfile(user.uuid);
+      setProfile(prof);
+      setProfileLoading(false);
+    })();
+  }, [user?.uuid]);
+
+  // Determine if the user has taken the MN test based on profile data
+  const testTaken = !profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0;
 
   const [uuid, setUUID] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Keep avatar state for ChatInput component compatibility
   const [avatar, setAvatar] = useState('chappelle');
 
   const setActiveView = (view: string) => {
@@ -35,22 +59,74 @@ export default function RagChatView(props: RagChatViewProps) {
   const [typingChunkSize] = useState(2);
   const [typingVariability] = useState(true);
 
-  const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:8010';
-
   useEffect(() => {
     setUUID(getOrCreateUserUUID());
   }, []);
 
   useEffect(() => {
     if (!uuid) return;
-    fetch(`${BACKEND_URL}/session-memory/${uuid}`, {
-      headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.messages?.length) setMessages(data.messages);
-      });
-  }, [uuid, idToken, BACKEND_URL]);
+    (async () => {
+      try {
+        console.log(`Fetching memory from ${BASE_URL}/storage/memory/get/${uuid}`);
+        // Fetch memory from storage service according to docs
+        const res = await fetch(`${BASE_URL}/storage/memory/get/${uuid}`, {
+          headers: { 
+            Authorization: `Bearer foo`, // Use the development token
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Server responded with ${res.status}:`, errorText);
+          return;
+        }
+        
+        const contentType = res.headers.get('content-type');
+        console.log('Memory response content type:', contentType);
+        
+        if (!contentType || !contentType.includes('application/json')) {
+          const textResponse = await res.text();
+          console.error('Memory response is not JSON:', textResponse);
+          return;
+        }
+        
+        const data = await res.json();
+        console.log('Received memory data:', data);
+        
+        // Handle different potential response formats
+        if (Array.isArray(data)) {
+          // Format from docs: array of {role, content} objects
+          if (data.length > 0 && data[0].role && data[0].content) {
+            try {
+              // Make sure we create valid Message objects that match our type
+              const convertedMessages: Message[] = data.map(item => ({
+                sender: item.role === 'user' ? 'user' : 'assistant',
+                text: item.content,
+                timestamp: getTimestamp(),
+              }));
+              console.log('Converted messages:', convertedMessages);
+              setMessages(convertedMessages);
+            } catch (convErr) {
+              console.error('Error converting messages:', convErr);
+            }
+          }
+        } else if (typeof data === 'object' && data !== null) {
+          // Alternative format: {messages: [...]}
+          if (data.messages && Array.isArray(data.messages)) {
+            try {
+              console.log('Using messages from response:', data.messages);
+              setMessages(data.messages);
+            } catch (msgErr) {
+              console.error('Error setting messages from response:', msgErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('❌ Error fetching session memory:', err);
+      }
+    })();
+  }, [uuid]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -93,72 +169,189 @@ export default function RagChatView(props: RagChatViewProps) {
   const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = input.trim();
+    const lower = trimmed.toLowerCase();
+    // If user asks about their scores, respond directly
+    if (!profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0
+      && (lower.includes('score') || lower.includes('scores') || lower.includes('mntest'))
+    ) {
+      const summary = Object.entries(profile.traitScores)
+        .map(([trait, score]) => `${trait}: ${score}`)
+        .join(', ');
+      const text = String(t('chat.scoreSummary', { scores: summary }));
+      const assistantMsg: Message = {
+        sender: 'assistant',
+        text,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      setInput('');
+      return;
+    }
     if (!trimmed) return;
 
+    // Build prompt: include MN test scores if available, otherwise use raw input
+    let ragPrompt = trimmed;
+    if (!profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0) {
+      const scoreSummary = Object.entries(profile.traitScores)
+        .map(([trait, score]) => `${trait}: ${score}`)
+        .join(', ');
+      ragPrompt = `My Multiple Natures scores are [${scoreSummary}]. ${trimmed}`;
+    }
+    // Prepend a focused instruction for concise answers about trait influences
+    const instruction = 'Based on my Multiple Natures scores above, in 2–3 bullet points explain how these traits tend to influence my interactions with others.';
+    const finalPrompt = `${instruction}\n\n${ragPrompt}`;
+
+    // Add user message immediately for better UX
     const userMessage: Message = {
       sender: 'user',
       text: trimmed,
       timestamp: getTimestamp(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/generate`, {
-        method: 'POST',
+      // Use the RAG endpoint via the same API base path (proxed in development).
+      const ragUrl = `${BASE_URL}/rag/query?prompt=${encodeURIComponent(finalPrompt)}`;
+      console.log(`Using RAG service: ${ragUrl}`);
+      
+      const ragRes = await fetch(ragUrl, {
         headers: {
-          'Content-Type': 'application/json',
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-        body: JSON.stringify({ prompt: trimmed, uuid, avatar, tone: avatar }),
+          'Authorization': 'Bearer foo'
+        }
       });
+      
+      if (!ragRes.ok) {
+        throw new Error(`RAG service returned ${ragRes.status}`);
+      }
+      
+      const ragData = await ragRes.json();
+      
+      // Build a dynamic, context-aware response based on the query
+      let responseText = '';
+      const fullText = (ragData.result || '').trim();
+      const lowerQuery = trimmed.toLowerCase();
 
-      const data = await res.json();
+      if (ragData.result) {
+        // Definition queries (e.g., "what is X", "definition of X")
+        if (lowerQuery.includes('what is') || lowerQuery.includes('definition of')) {
+          const conceptMatch = lowerQuery.match(/what is ([^?]+)|definition of ([^?]+)/i);
+          const concept = conceptMatch ? (conceptMatch[1] || conceptMatch[2]).trim() : '';
+          const paragraphs = fullText.split('\n\n');
+          if (concept && fullText.toLowerCase().includes(concept.toLowerCase())) {
+            const relevant = paragraphs.filter((p: string) =>
+              p.toLowerCase().includes(concept.toLowerCase()) && p.length > 50 && !p.includes(': ')
+            );
+            if (relevant.length) {
+              responseText = `${concept.charAt(0).toUpperCase() + concept.slice(1)} refers to ${relevant[0].trim()}`;
+            } else {
+              const sentences = fullText.split(/[.!?]/).filter((s: string) => s.trim().length > 0);
+              const rs = sentences.filter((s: string) => s.toLowerCase().includes(concept.toLowerCase()) && s.length > 20);
+              if (rs.length) {
+                responseText = `${concept.charAt(0).toUpperCase() + concept.slice(1)} refers to ${rs[0].trim()}.`;
+                if (rs[1]) responseText += ` ${rs[1].trim()}.`;
+              } else {
+                const defPara = paragraphs.find((p: string) => p.includes(': ') || p.includes(' is ') || p.includes(' are '));
+                responseText = (defPara || paragraphs[0] || fullText).trim();
+              }
+            }
+          } else {
+            responseText = paragraphs[0] || fullText;
+          }
+        }
+        // Instructional ("how to") queries
+        else if (lowerQuery.includes('how to')) {
+          const actionMatch = lowerQuery.match(/how to ([^?]+)/i);
+          const action = actionMatch ? actionMatch[1].trim() : '';
+          const paragraphs = fullText.split('\n\n');
+          const instr = paragraphs.filter((p: string) =>
+            (p.includes('•') || p.includes(':') || p.toLowerCase().includes('step') ||
+             p.toLowerCase().includes('try') || p.toLowerCase().includes('practice')) &&
+            p.length > 40
+          );
+          responseText = instr.length
+            ? `Here's how you can ${action}:\n\n${instr.slice(0, 2).join('\n\n')}`
+            : `To ${action}, consider this information:\n\n${paragraphs[0]}`;
+        }
+        // Personal context queries
+        else if (lowerQuery.includes('my') || lowerQuery.includes(' i ') || lowerQuery.includes(' me')) {
+          const intro = "I don't have access to your specific profile information. To get your personal Multiple Natures profile, you would need to take the assessment. However, I can provide general information about how Multiple Natures traits work together:\n\n";
+          const paragraphs = fullText.split('\n\n');
+          const rel = paragraphs.filter((p: string) => (p.includes('High') || p.includes('Facet') || p.includes('Nature')) && p.length > 40);
+          responseText = intro + (rel.length ? rel.slice(0, 2).join('\n\n') : "Multiple Natures helps you understand your natural behavioral traits and how they can be applied to find alignment in your life and work. Consider taking the assessment to discover your unique profile.");
+        }
+        // Default fallback for other queries
+        else {
+          const paragraphs = fullText.split('\n\n').filter((p: string) => p.trim().length > 40 && !p.includes(':') && !p.startsWith('•'));
+          responseText = paragraphs.length
+            ? paragraphs.slice(0, 2).join('\n\n')
+            : fullText.split('\n\n').find((p: string) => p.trim().length > 40) || fullText.substring(0, 300);
+        }
 
+        // Add conversational intro
+        if (lowerQuery.includes('how')) {
+          responseText = `Here's what I can tell you:\n\n${responseText}`;
+        } else if (!lowerQuery.includes('what is') && !lowerQuery.includes('definition')) {
+          responseText = `Based on the Multiple Natures framework:\n\n${responseText}`;
+        }
+
+        // Cleanup whitespace and ensure punctuation
+        responseText = responseText.trim().replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ');
+        if (!['.', '!', '?', ':'].some(ch => responseText.endsWith(ch))) {
+          responseText += '.';
+        }
+      } else {
+        responseText = "I'm sorry, I don't have enough information to answer that question about Multiple Natures.";
+      }
+      
+      // Add assistant response
       const assistantMessage: Message = {
         sender: 'assistant',
         text: '',
-        fullText: data.answer,
+        fullText: responseText,
         isTyping: true,
-        sources: data.sources || [],
-        followup: data.followup || null,
         timestamp: getTimestamp(),
       };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsTyping(false);
-
-      await fetch(`${BACKEND_URL}/session-memory`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-        body: JSON.stringify({
-          uuid,
-          conversation_log: {
-            messages: [
-              ...messages,
-              userMessage,
-              { ...assistantMessage, text: assistantMessage.fullText, isTyping: false },
-            ],
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Save the conversation to memory
+      try {
+        const memoryData = {
+          userId: uuid,
+          sessionId: uuid,
+          messages: [
+            { role: 'user', content: trimmed },
+            { role: 'assistant', content: responseText }
+          ]
+        };
+        
+        await fetch(`${BASE_URL}/storage/memory/save`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer foo'
           },
-          interim_scores: {},
-        }),
-      });
-    } catch (err) {
-      console.error('Error fetching response:', err);
+          body: JSON.stringify(memoryData)
+        });
+        
+        console.log('Conversation saved to memory');
+      } catch (memErr) {
+        console.warn('Failed to save to memory:', memErr);
+      }
+    } catch (err: any) {
+      console.error('Error:', err);
+      
+      // Add error message
+      setMessages(prev => [...prev, {
+        sender: 'assistant',
+        text: `I'm sorry, I encountered an error: ${err.message}`,
+        timestamp: getTimestamp(),
+      }]);
+    } finally {
       setIsTyping(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'assistant',
-          text: 'Sorry, I encountered an error. Please try again.',
-          timestamp: getTimestamp(),
-        },
-      ]);
     }
   };
 
@@ -218,6 +411,7 @@ export default function RagChatView(props: RagChatViewProps) {
           avatar={avatar}
           setAvatar={setAvatar}
           setActiveView={setActiveView}
+          disabled={isTyping}
         />
       </div>
     </>

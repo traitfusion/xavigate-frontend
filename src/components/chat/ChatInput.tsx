@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
-import ChatAvatarSelector from './ChatAvatarSelector';
+// import ChatAvatarSelector from './ChatAvatarSelector';
 import { Textarea, Button } from '@/design-system/components';
+import { useTranslation } from 'react-i18next';
 
 export interface ChatInputProps {
   input: string;
@@ -10,6 +11,8 @@ export interface ChatInputProps {
   avatar: string;
   setAvatar: (id: string) => void;
   setActiveView: (view: string) => void; // 🧂 added for Avatar Composer trigger
+  /** Disable input and send while processing */
+  disabled?: boolean;
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -19,7 +22,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
   avatar,
   setAvatar,
   setActiveView,
+  disabled = false,
 }) => {
+  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -38,6 +43,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (disabled) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (input.trim()) sendMessage(e as any);
@@ -46,7 +52,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div style={{ borderTop: '1px solid #E5E7EB', backgroundColor: '#FFFFFF' }}>
-      <div style={{ padding: '16px 24px 0' }}>
+      <div style={{ padding: '16px 24px' }}>
         <form
           onSubmit={sendMessage}
           style={{
@@ -64,7 +70,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Share your thoughts or ask a question..."
+            placeholder={t('chat.placeholder')}
+            disabled={disabled}
             style={{
               flex: 1,
               border: 'none',
@@ -77,14 +84,14 @@ const ChatInput: React.FC<ChatInputProps> = ({
           <Button
             type="submit"
             variant="ghost"
-            disabled={!input.trim()}
+            disabled={disabled || !input.trim()}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: '8px',
               border: 'none',
-              cursor: input.trim() === '' ? 'default' : 'pointer',
+              cursor: disabled || input.trim() === '' ? 'default' : 'pointer',
             }}
           >
             <Send size={18} />
@@ -92,11 +99,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
         </form>
       </div>
 
+      { /* Avatar selector dropdown - commented out per request
       <ChatAvatarSelector
         selectedId={avatar}
         setSelectedId={setAvatar}
         setActiveView={setActiveView}
       />
+      */ }
     </div>
   );
 };

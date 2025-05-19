@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { login, logout, handleAuthCallback, refreshTokens, parseJwt } from '@/utils/auth';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+import {
+  fetchAuthSession,
+  signOut as amplifySignOut,
+} from '@aws-amplify/auth';
 
 type AvatarProfile = {
   avatar_id: string;
@@ -26,7 +35,6 @@ interface AuthContextType {
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth(): AuthContextType {
@@ -45,106 +53,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    async function initAuth() {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (code) {
-        // Handle OAuth callback
-        try {
-          const tokens = await handleAuthCallback();
-          const { id_token, access_token, refresh_token } = tokens;
-          setIdToken(id_token);
-          setAccessToken(access_token);
-          if (refresh_token) {
-            setRefreshToken(refresh_token);
-          }
-          localStorage.setItem('id_token', id_token);
-          localStorage.setItem('access_token', access_token);
-          if (refresh_token) {
-            localStorage.setItem('refresh_token', refresh_token);
-          }
-          const claims = parseJwt(id_token) as any;
-          setUser({
-            name: claims.name || '',
-            uuid: claims.sub,
-            email: claims.email,
-            onboardingCompleted: true,
-          });
-          // Clean up URL
-          window.history.replaceState({}, '', window.location.pathname);
-        } catch (err) {
-          console.error('OAuth callback failed, signing out and restarting login', err);
-          // Clear stored data
-          localStorage.removeItem('pkce_verifier');
-          localStorage.removeItem('id_token');
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          // Sign out of Cognito to clear session and force fresh login
-          logout();
-          return;
-        }
-      } else {
-        // Attempt to restore existing session
-        const storedId = localStorage.getItem('id_token');
-        const storedAccess = localStorage.getItem('access_token');
-        const storedRefresh = localStorage.getItem('refresh_token');
-        if (storedId && storedAccess) {
-          setIdToken(storedId);
-          setAccessToken(storedAccess);
-          setRefreshToken(storedRefresh);
-          const claims = parseJwt(storedId) as any;
-          setUser({
-            name: claims.name || '',
-            uuid: claims.sub,
-            email: claims.email,
-            onboardingCompleted: true,
-          });
-        } else {
-          // No session: start OAuth login flow
-          login();
-          return;
-        }
-      }
-      setReady(true);
-    }
-    initAuth();
+    fetchAuthSession()
+      .then((session: any) => {
+        const tokens = session.tokens;
+        const id_token = tokens.idToken?.toString() ?? '';
+        const access_token = tokens.accessToken?.toString() ?? '';
+        const refresh_token = tokens.refreshToken?.toString() ?? '';
+
+        setIdToken(id_token);
+        setAccessToken(access_token);
+        setRefreshToken(refresh_token);
+
+        const payload = JSON.parse(atob(id_token.split('.')[1]));
+        const displayName =
+          payload.name ||
+          payload.email ||
+          payload['cognito:username'] ||
+          payload.sub ||
+          '';
+
+        setUser({
+          name: displayName,
+          uuid: payload.sub,
+          email: payload.email,
+          onboardingCompleted: true,
+        });
+      })
+      .catch((err: any) => {
+        console.warn('No active session:', err);
+        setUser(null);
+        setIdToken(null);
+        setAccessToken(null);
+        setRefreshToken(null);
+      })
+      .finally(() => {
+        setReady(true);
+      });
   }, []);
 
   const signIn = () => {
-    login();
+    // redirect or popup flow handled elsewhere
   };
 
-  const signOut = () => {
-    // Clear PKCE verifier and tokens from storage
-    localStorage.removeItem('pkce_verifier');
-    localStorage.removeItem('id_token');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    // Clear in-memory state
+  const signOut = async () => {
+    try {
+      await amplifySignOut();
+    } catch {}
     setIdToken(null);
     setAccessToken(null);
     setRefreshToken(null);
     setUser(null);
-    // Redirect to Cognito Hosted UI logout to clear server session and redirect back
-    logout();
   };
 
   const refresh = async () => {
-    if (!refreshToken) throw new Error('No refresh token available');
     try {
-      const tokens = await refreshTokens(refreshToken);
-      const { id_token, access_token, refresh_token: newRefresh } = tokens;
+      const session = await fetchAuthSession();
+      const tokens = (session as any).tokens;
+      const id_token = tokens.idToken?.toString() ?? '';
+      const access_token = tokens.accessToken?.toString() ?? '';
+      const refresh_token = tokens.refreshToken?.toString() ?? '';
+
       setIdToken(id_token);
       setAccessToken(access_token);
-      localStorage.setItem('id_token', id_token);
-      localStorage.setItem('access_token', access_token);
-      if (newRefresh) {
-        setRefreshToken(newRefresh);
-        localStorage.setItem('refresh_token', newRefresh);
-      }
+      setRefreshToken(refresh_token);
     } catch (err) {
-      console.error('Refresh token error:', err);
-      signOut();
+      console.error('Token refresh failed:', err);
+      await signOut();
     }
   };
 

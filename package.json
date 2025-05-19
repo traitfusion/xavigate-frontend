@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:8010",
+  "proxy": "http://chat.xavigate.com:8080",
   "scripts": {
     "start": "craco start",
     "dev": "craco start",
@@ -19,6 +19,8 @@
     "lint:fix": "eslint --ext .ts,.tsx src --fix"
   },
   "dependencies": {
+    "@aws-amplify/auth": "^6.12.4",
+    "@aws-sdk/client-cognito-identity-provider": "^3.810.0",
     "@craco/craco": "^7.1.0",
     "@openai/codex": "^0.1.2505021246",
     "@testing-library/dom": "^10.4.0",
@@ -30,9 +32,14 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "0g": "^0.4.2",
+    "aws-amplify": "^6.14.4",
+    "i18next": "^25.1.3",
+    "i18next-browser-languagedetector": "^8.1.0",
+    "i18next-http-backend": "^3.0.2",
     "lucide-react": "^0.508.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^15.5.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.30.0",
     "react-scripts": "5.0.1",
@@ -51,19 +58,21 @@
     "@storybook/react-webpack5": "^8.6.12",
     "@storybook/test": "^8.6.12",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.21",
     "dotenv": "^16.5.0",
     "eslint": "^8.56.0",
     "eslint-plugin-storybook": "^0.12.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0",
     "openai": "^4.98.0",
     "postcss": "^8.5.3",
     "prop-types": "^15.8.1",
     "storybook": "^8.6.12",
     "tailwindcss": "^3.4.17",
     "ts-morph": "^25.0.1",
-    "webpack": "^5.99.8",
-    "husky": "^8.0.0",
-    "lint-staged": "^13.0.0"
+    "vite": "^6.3.5",
+    "webpack": "^5.99.8"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [

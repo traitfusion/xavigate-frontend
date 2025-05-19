@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Lock, User } from 'lucide-react';
 
 type AccountSidebarProps = {
@@ -7,6 +8,7 @@ type AccountSidebarProps = {
 };
 
 export default function AccountSidebar({ activeTab, setActiveTab }: AccountSidebarProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -25,7 +27,7 @@ export default function AccountSidebar({ activeTab, setActiveTab }: AccountSideb
             letterSpacing: '0.05em',
           }}
         >
-          Personal
+          {t('accountSidebar.sectionTitle')}
         </div>
         <div
           style={{
@@ -52,7 +54,7 @@ export default function AccountSidebar({ activeTab, setActiveTab }: AccountSideb
             }}
           >
             <User size={16} style={{ marginRight: '8px' }} />
-            Profile
+            {t('accountSidebar.profile')}
           </button>
           <button
             onClick={() => setActiveTab('password')}
@@ -72,7 +74,7 @@ export default function AccountSidebar({ activeTab, setActiveTab }: AccountSideb
             }}
           >
             <Lock size={16} style={{ marginRight: '8px' }} />
-            Password
+            {t('accountSidebar.password')}
           </button>
         </div>
       </div>

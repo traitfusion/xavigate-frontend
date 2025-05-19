@@ -1,0 +1,111 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "next": "Next",
+    "previous": "Back"
+  },
+  "profileSection": {
+    "yourProfile": "Your Multiple Natures Profile",
+    "multipleIntelligences": "Multiple Intelligences",
+    "multipleNatures": "Multiple Natures",
+    "traitHint": "Click any trait to ask the AI about what it means"
+  },
+  "navigation": {
+    "chat": "Chat",
+    "home": "Home",
+    "assessment": "MN Profile",
+    "profile": "Profile",
+    "account": "Account",
+    "settings": "Settings"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success!",
+    "unknownView": "Unknown View"
+  },
+  "help": {
+    "title": "Help Center",
+    "welcome": "Welcome to the Xavigate Help Center. Here you'll find resources to help you navigate the platform and get the most out of your experience.",
+    "gettingStarted": "Getting Started",
+    "gettingStartedDesc": "If you're new to Xavigate, start with our introductory guide to learn about the platform's key features and how to use them.",
+    "contactSupport": "Contact Support",
+    "contactSupportDesc": "Need additional help? Our support team is here for you. Email us at support@xavigate.com."
+  },
+  "multipleIntelligences": {
+    "grossBodily": "Gross Bodily",
+    "fineBodily": "Fine Bodily",
+    "interpersonal": "Interpersonal",
+    "logical": "Logical",
+    "linguistic": "Linguistic",
+    "graphicVisual": "Graphic Visual",
+    "spatialVisual": "Spatial Visual",
+    "musical": "Musical",
+    "intrapersonal": "Intrapersonal",
+    "naturalistic": "Naturalistic"
+  },
+  "multipleNatures": {
+    "protective": "Protective",
+    "educative": "Educative",
+    "administrative": "Administrative",
+    "creative": "Creative",
+    "healing": "Healing",
+    "entertaining": "Entertaining",
+    "providing": "Providing",
+    "entrepreneurial": "Entrepreneurial",
+    "adventurous": "Adventurous"
+  },
+  "chat": {
+    "placeholder": "Share your thoughts or ask a question...",
+    "noTraitScores": "⚠️ No trait scores found. Please complete the MNTEST first.",
+    "welcomeTitle": "Welcome to Your Alignment Journey",
+    "welcomeDescription": "I'm here to help you explore your natural traits and find greater alignment in your life. Our conversations will be most helpful when you share specific situations, patterns, or questions about how you engage with the world.",
+    "convoStartersTitle": "Conversation Starters",
+    "suggestions": [
+      { "title": "Trait Recognition", "question": "What traits might be showing up in my daily patterns?", "context": "Explore your natural behavioral tendencies" },
+      { "title": "Alignment Diagnosis", "question": "I feel drained after work meetings. Could this be misalignment?", "context": "Identify potential misalignments in specific contexts" },
+      { "title": "Flow States", "question": "When do I experience flow and how can I create more of it?", "context": "Understand your natural alignment zones" },
+      { "title": "Relationship Patterns", "question": "How might my traits influence my interactions with others?", "context": "Explore interpersonal dynamics through trait awareness" }
+    ],
+    "finalPrivacyNote": "Your conversation is private and designed to help you explore alignment in your own life",
+    "scoreSummary": "Your Multiple Natures scores are: {{scores}}."
+  },
+  "accountView": {
+    "title": "Account Settings",
+    "description": "Manage your profile and account settings",
+    "footer": "© {{year}} Xavigate. All rights reserved."
+  },
+  "accountSidebar": {
+    "sectionTitle": "Personal",
+    "profile": "Profile",
+    "password": "Password"
+  },
+  "profileTab": {
+    "header": "Profile Information",
+    "firstNameLabel": "First Name",
+    "lastNameLabel": "Last Name",
+    "usernameLabel": "Username",
+    "emailLabel": "Email",
+    "placeholderFirstName": "First Name",
+    "placeholderLastName": "Last Name",
+    "placeholderUsername": "yourusername",
+    "placeholderEmail": "Email Address",
+    "cancel": "Cancel",
+    "saveChanges": "Save Changes",
+    "saveSuccess": "Profile updated successfully.",
+    "saveError": "Failed to update profile, please try again."
+  },
+  "passwordTab": {
+    "header": "Change Password",
+    "description": "Update your password to keep your account secure.",
+    "currentPasswordLabel": "Current Password",
+    "newPasswordLabel": "New Password",
+    "confirmPasswordLabel": "Confirm New Password",
+    "cancel": "Cancel",
+    "updatePassword": "Update Password",
+    "minLengthError": "Password must be at least 8 characters.",
+    "mismatchError": "New passwords do not match.",
+    "updateSuccess": "✅ Password updated successfully."
+  }
+}

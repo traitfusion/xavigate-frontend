@@ -1,204 +1,245 @@
-import React, { useEffect, useState } from 'react';
-import { QUESTIONS } from './mnTestItems';
-import { useAuth } from '@/context/AuthContext';
-import ResponsiveWrapper from '@/layout/ResponsiveWrapper';
-import { useScreenSize } from '@/layout/useScreenSize';
-import { Text, Button, FormGroup } from '@/design-system/components';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Text } from '@/design-system/components';
+import { MNTEST_ITEMS } from '@/data/mntest-items';
 
-interface MNTestFormProps {
-  onComplete: (traitScores: Record<string, number>) => void;
+// Define the trait score type
+interface TraitScores {
+  [key: string]: number;
 }
 
-const MNTestForm: React.FC<MNTestFormProps> = ({ onComplete }) => {
-  const { user } = useAuth();
-  const uuid = user?.uuid;
+interface MNTestFormProps {
+  onComplete: (scores: TraitScores) => void;
+}
 
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const { isMobile, isTablet } = useScreenSize();
+// Build questions array from imported MNTEST_ITEMS
+const questions = MNTEST_ITEMS.map(item => ({
+  id: item.id,
+  text: item.text,
+  trait: item.traitCategory,
+}));
 
-  const currentQuestion = QUESTIONS[currentIndex];
-  const currentAnswer = answers[currentIndex] ?? null;
+// Display one question per page for step-by-step assessment
+const questionsPerPage = 1;
+const totalPages = Math.ceil(questions.length / questionsPerPage);
 
-  const handleSelect = (value: number) => {
-    setAnswers((prev) => ({ ...prev, [currentIndex]: value }));
-  };
+export default function MNTestForm({ onComplete }: MNTestFormProps) {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [answers, setAnswers] = useState<{ [key: number]: number }>({});
 
-  const handleNext = () => {
-    if (!currentAnswer) return;
-
-    if (currentIndex < QUESTIONS.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
-    } else {
-      const traitBuckets: Record<string, number[]> = {};
-      QUESTIONS.forEach((q, i) => {
-        const score = answers[i];
-        if (score === undefined) return;
-        if (!traitBuckets[q.trait]) traitBuckets[q.trait] = [];
-        traitBuckets[q.trait].push(score);
-      });
-
-      const traitScores: Record<string, number> = {};
-      Object.entries(traitBuckets).forEach(([trait, values]) => {
-        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
-        traitScores[trait] = parseFloat((avg * 2).toFixed(2));
-      });
-
-      const BACKEND_URL = process.env.REACT_APP_API_URL || 'http://localhost:8010';
-
-      if (!uuid) {
-        console.error('❌ No user UUID found');
-        onComplete(traitScores);
-        return;
-      }
-
-      fetch(`${BACKEND_URL}/mntest/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uuid, traitScores }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log('✅ MNTEST submitted:', data);
-          onComplete(traitScores);
-        })
-        .catch((err) => {
-          console.error('❌ Failed to submit MNTEST:', err);
-          onComplete(traitScores);
-        });
-    }
-  };
-
-  const handleBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
-
-  const handleClear = () => {
-    const updated = { ...answers };
-    delete updated[currentIndex];
-    setAnswers(updated);
-  };
-
+  // Debug: log total questions count to verify correct parsing
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
+    console.log('MNTestForm: total questions loaded =', questions.length);
+  }, []);
+  // Get the current page's questions
+  const getCurrentPageQuestions = () => {
+    const start = currentPage * questionsPerPage;
+    const end = start + questionsPerPage;
+    return questions.slice(start, end);
+  };
+
+  /**
+   * Calculate average score per trait based on user answers
+   */
+  const calculateScores = () => {
+    const scores: Record<string, number> = {};
+    const counts: Record<string, number> = {};
+    // Sum ratings and count occurrences
+    questions.forEach(({ id, trait }) => {
+      const rating = answers[id];
+      if (rating !== undefined) {
+        scores[trait] = (scores[trait] || 0) + rating;
+        counts[trait] = (counts[trait] || 0) + 1;
+      }
+    });
+    // Compute average (1-5 scale)
+    Object.keys(scores).forEach((trait) => {
+      scores[trait] = scores[trait] / (counts[trait] || 1);
+    });
+    return scores;
+  };
+
+  // Handle going to the next page or completing the test
+  const handleNext = async () => {
+    // Check if all questions on the current page are answered
+    const currentQuestions = getCurrentPageQuestions();
+    const allAnswered = currentQuestions.every(q => answers[q.id] !== undefined);
+    
+    if (!allAnswered) {
+      alert("Please answer all questions before proceeding.");
+      return;
+    }
+
+    // If this is the last page, calculate scores and complete
+    if (currentPage === totalPages - 1) {
+      const finalScores = calculateScores();
+      
+      // Pass the scores to the parent component
+      onComplete(finalScores);
+      
+      // Parent component will handle saving to the backend
+      console.log('Test completed with scores:', finalScores);
+    } else {
+      // Go to next page
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  // Handle going to the previous page
+  const handlePrevious = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
+  // Handle answer selection
+  const handleAnswer = (questionId: number, rating: number) => {
+    console.log(`MNTestForm: selected rating ${rating} for question ${questionId}`);
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: rating
+    }));
+  };
+
+
+  // Determine if current page's questions have all been answered
+  const currentQuestions = getCurrentPageQuestions();
+  const allAnswered = currentQuestions.every(q => answers[q.id] !== undefined);
+
+  // Enable keyboard input: numeric keys to answer, Enter/ArrowRight to proceed
+  useEffect(() => {
+    const handleKeyGlobal = (e: KeyboardEvent) => {
       const key = e.key;
-      if (['1', '2', '3', '4', '5'].includes(key)) {
-        handleSelect(parseInt(key));
-      } else if (key === 'Enter' || key === 'ArrowRight') {
+      // Number keys 1-5 select rating for current question
+      if (key >= '1' && key <= '5') {
+        const rating = parseInt(key, 10);
+        const currentQuestion = getCurrentPageQuestions()[0];
+        if (currentQuestion) {
+          handleAnswer(currentQuestion.id, rating);
+          e.preventDefault();
+        }
+      }
+      // Enter or ArrowRight moves to next if answered
+      if ((key === 'Enter' || key === 'ArrowRight') && allAnswered) {
+        e.preventDefault();
         handleNext();
-      } else if (key === 'ArrowLeft') {
-        handleBack();
-      } else if (key === 'Backspace' || key === 'Delete') {
-        handleClear();
       }
     };
-
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [currentAnswer, currentIndex]);
+    window.addEventListener('keydown', handleKeyGlobal);
+    return () => window.removeEventListener('keydown', handleKeyGlobal);
+  }, [allAnswered, currentPage, answers]);
 
   return (
-    <ResponsiveWrapper style={{ maxWidth: '600px' }}>
-      <div
-        style={{
-          padding: '1.5rem',
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-          textAlign: 'center',
-        }}
-      >
-        <Text variant="h2" style={{ marginBottom: '24px' }}>
-          Question {currentIndex + 1} of {QUESTIONS.length}
+    <Card padding="lg" style={{ maxWidth: 800, margin: '2rem auto', padding: '2rem' }}>
+      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <Text variant="subtitle" style={{ fontSize: '1rem', fontWeight: 500 }}>
+          Page {currentPage + 1} of {totalPages}
         </Text>
-
         <div
           style={{
-            minHeight: '100px',
-            margin: '0 auto 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0 1rem',
+            height: '6px',
+            backgroundColor: '#E5E7EB',
+            borderRadius: '3px',
+            margin: '10px auto',
+            maxWidth: '200px',
           }}
         >
-          <Text variant="body" style={{ fontSize: '18px', lineHeight: '1.6' }}>
-            {currentQuestion.text}
-          </Text>
+          <div
+            style={{
+              height: '100%',
+              width: `${((currentPage + 1) / totalPages) * 100}%`,
+              backgroundColor: '#4338ca',
+              borderRadius: '3px',
+              transition: 'width 0.3s ease-in-out',
+            }}
+          />
         </div>
+      </div>
 
-        <FormGroup>
+      {getCurrentPageQuestions().map((question) => (
+        <div
+          key={question.id}
+          style={{
+            marginBottom: '20px',
+            padding: '20px',
+            backgroundColor: '#fff',
+            borderRadius: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+          }}
+        >
+          <Text
+            variant="body"
+            style={{
+              marginBottom: '16px',
+              fontSize: '1.5rem',
+              fontWeight: 600,
+              lineHeight: 1.4,
+              textAlign: 'center',
+              // Reserve space for up to two lines of question text to prevent shifting
+              minHeight: '4.5rem',
+            }}
+          >
+            {question.text}
+          </Text>
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              gap: '8px',
-              marginBottom: '32px',
-              width: '100%',
-              padding: '0 12px',
-              boxSizing: 'border-box',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginBottom: '20px',
             }}
           >
-            {[1, 2, 3, 4, 5].map((n) => (
+            {[1, 2, 3, 4, 5].map((rating) => (
               <button
-                key={n}
-                onClick={() => handleSelect(n)}
+                key={rating}
+                type="button"
+                onClick={() => handleAnswer(question.id, rating)}
                 style={{
-                  width: '48px',
-                  height: '48px',
-                  fontSize: '16px',
+                  minWidth: '56px',
+                  minHeight: '56px',
+                  padding: '16px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor:
+                    answers[question.id] === rating ? '#4338ca' : '#F3F4F6',
+                  color: answers[question.id] === rating ? '#fff' : '#1F2937',
+                  fontSize: '1rem',
                   fontWeight: 600,
-                  borderRadius: '50%',
-                  border: '2px solid',
-                  borderColor: currentAnswer === n ? '#4F46E5' : '#D1D5DB',
-                  backgroundColor: currentAnswer === n ? '#4F46E5' : 'transparent',
-                  color: currentAnswer === n ? 'white' : '#1F2937',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  transition: 'background-color 0.2s ease-in-out',
                 }}
               >
-                {n}
+                {rating}
               </button>
             ))}
           </div>
-        </FormGroup>
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '12px',
-            padding: '0 12px',
-          }}
-        >
-          <Button
-            variant="secondary"
-            onClick={handleBack}
-            disabled={currentIndex === 0}
-            style={{
-              opacity: currentIndex === 0 ? 0.4 : 1,
-            }}
-          >
-            ←
-          </Button>
-
-          <Button
-            variant="primary"
-            onClick={handleNext}
-            disabled={!currentAnswer}
-            style={{
-              opacity: !currentAnswer ? 0.4 : 1,
-            }}
-          >
-            {currentIndex === QUESTIONS.length - 1 ? 'Submit' : '→'}
-          </Button>
         </div>
-      </div>
-    </ResponsiveWrapper>
-  );
-};
+      ))}
 
-export default MNTestForm;
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginTop: '20px',
+        }}
+      >
+        <Button
+          onClick={handlePrevious}
+          disabled={currentPage === 0}
+          variant="secondary"
+          style={{ padding: '16px 24px' }}
+        >
+          Previous
+        </Button>
+        <Button
+          onClick={handleNext}
+          disabled={!allAnswered}
+          style={{ padding: '16px 24px' }}
+        >
+          {currentPage === totalPages - 1 ? 'Complete' : 'Next'}
+        </Button>
+      </div>
+    </Card>
+  );
+}

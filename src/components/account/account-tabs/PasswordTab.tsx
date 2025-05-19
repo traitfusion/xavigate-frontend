@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react';
 
 const PasswordTab: React.FC = () => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     current: '',
     new: '',
@@ -28,19 +30,19 @@ const PasswordTab: React.FC = () => {
 
     if (form.new.length < 8) {
       setStatus('error');
-      setMessage('Password must be at least 8 characters.');
+      setMessage(t('passwordTab.minLengthError'));
       return;
     }
 
     if (form.new !== form.confirm) {
       setStatus('error');
-      setMessage('New passwords do not match.');
+      setMessage(t('passwordTab.mismatchError'));
       return;
     }
 
     console.log('Password change submitted:', form);
     setStatus('success');
-    setMessage('✅ Password updated successfully.');
+    setMessage(t('passwordTab.updateSuccess'));
 
     setForm({ current: '', new: '', confirm: '' });
   };
@@ -87,17 +89,21 @@ const PasswordTab: React.FC = () => {
   );
 
   return (
-    <div style={{ maxWidth: '480px', width: '100%', boxSizing: 'border-box' }}>
-      <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>Change Password</h2>
+    <div style={{ padding: '0 24px', boxSizing: 'border-box' }}>
+      {/* Center and constrain form width */}
+      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>
+          {t('passwordTab.header')}
+        </h2>
 
-      <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px' }}>
-        Update your password to keep your account secure.
-      </p>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px' }}>
+          {t('passwordTab.description')}
+        </p>
 
-      <form onSubmit={handleSubmit}>
-        {renderInput('Current Password', 'current')}
-        {renderInput('New Password', 'new')}
-        {renderInput('Confirm New Password', 'confirm')}
+        <form onSubmit={handleSubmit}>
+        {renderInput(t('passwordTab.currentPasswordLabel'), 'current')}
+        {renderInput(t('passwordTab.newPasswordLabel'), 'new')}
+        {renderInput(t('passwordTab.confirmPasswordLabel'), 'confirm')}
 
         {status === 'error' && (
           <p style={{ color: '#b91c1c', fontSize: '13px', marginBottom: '12px' }}>{message}</p>
@@ -124,7 +130,7 @@ const PasswordTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            Cancel
+            {t('passwordTab.cancel')}
           </button>
           <button
             type="submit"
@@ -138,10 +144,11 @@ const PasswordTab: React.FC = () => {
               cursor: 'pointer',
             }}
           >
-            Update Password
+            {t('passwordTab.updatePassword')}
           </button>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

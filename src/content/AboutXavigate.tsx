@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '@/assets/Xavigate_Logo.svg';
 
 export default function AboutXavigate() {
   return (
@@ -30,24 +31,17 @@ export default function AboutXavigate() {
           textAlign: 'center',
         }}
       >
-        {/* You can replace this with your actual logo */}
-        <div
+        {/* Xavigate logo */}
+        <img
+          src={logo}
+          alt="Xavigate logo"
           style={{
-            width: '120px',
-            height: '120px',
+            maxWidth: '120px',
+            height: 'auto',
             margin: '0 auto 24px',
-            borderRadius: '60px',
-            backgroundColor: '#eef2ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '32px',
-            fontWeight: '800',
-            color: '#4338ca',
+            display: 'block',
           }}
-        >
-          X
-        </div>
+        />
 
         <p
           style={{

@@ -1,0 +1,176 @@
+{
+  "buttons": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "next": "Suivant",
+    "previous": "Retour"
+  },
+  "profileSection": {
+    "yourProfile": "Votre Profil Multiple Natures",
+    "multipleIntelligences": "Intelligences Multiples",
+    "multipleNatures": "Natures Multiples",
+    "traitHint": "Cliquez sur n'importe quel trait pour demander à l'IA ce que cela signifie"
+  },
+  "navigation": {
+    "chat": "Chat",
+    "home": "Accueil",
+    "assessment": "Profil MN",
+    "profile": "Profil",
+    "account": "Compte",
+    "settings": "Paramètres"
+  },
+  "menu": {
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "about": "À propos de Xavigate",
+    "help": "Centre d'Aide",
+    "accountSettings": "Paramètres du compte",
+    "signOut": "Se déconnecter"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "success": "Succès !",
+    "unknownView": "Vue Inconnue"
+  },
+  "help": {
+    "title": "Centre d'Aide",
+    "welcome": "Bienvenue au Centre d'Aide Xavigate. Vous trouverez ici des ressources pour vous aider à naviguer sur la plateforme et tirer le meilleur parti de votre expérience.",
+    "gettingStarted": "Commencer",
+    "gettingStartedDesc": "Si vous êtes nouveau sur Xavigate, commencez par notre guide d'introduction pour découvrir les fonctionnalités clés de la plateforme et comment les utiliser.",
+    "contactSupport": "Contacter le Support",
+    "contactSupportDesc": "Besoin d'aide supplémentaire ? Notre équipe de support est là pour vous. Envoyez-nous un email à support@xavigate.com."
+  },
+  "multipleIntelligences": {
+    "grossBodily": "Corporelle Brute",
+    "fineBodily": "Corporelle Fine",
+    "interpersonal": "Interpersonnelle",
+    "logical": "Logique",
+    "linguistic": "Linguistique",
+    "graphicVisual": "Visuelle Graphique",
+    "spatialVisual": "Visuelle Spatiale",
+    "musical": "Musicale",
+    "intrapersonal": "Intrapersonnelle",
+    "naturalistic": "Naturaliste"
+  },
+  "multipleNatures": {
+    "protective": "Protectrice",
+    "educative": "Éducatrice",
+    "administrative": "Administrative",
+    "creative": "Créative",
+    "healing": "Guérisseuse",
+    "entertaining": "Animatrice",
+    "providing": "Serviable",
+    "entrepreneurial": "Entrepreneuriale",
+    "adventurous": "Aventurière"
+  }
+  ,
+  "chat": {
+    "placeholder": "Partagez vos réflexions ou posez une question...",
+    "noTraitScores": "⚠️ Aucun score de trait trouvé. Veuillez d'abord compléter le MNTEST.",
+    "welcomeTitle": "Bienvenue dans votre parcours d'alignement",
+    "welcomeDescription": "Je suis ici pour vous aider à explorer vos traits naturels et trouver un meilleur alignement dans votre vie. Nos conversations seront plus utiles lorsque vous partagerez des situations spécifiques, des schémas ou des questions sur la façon dont vous interagissez avec le monde.",
+    "convoStartersTitle": "Suggestions de conversation",
+    "suggestions": [
+      { "title": "Reconnaissance des traits", "question": "Quels traits pourraient se manifester dans mes habitudes quotidiennes?", "context": "Explorez vos tendances comportementales naturelles" },
+      { "title": "Diagnostic d'alignement", "question": "Je me sens vidé après les réunions de travail. Pourrait-ce être un désalignement?", "context": "Identifiez les désalignements potentiels dans des contextes spécifiques" },
+      { "title": "États de flux", "question": "Quand est-ce que j'expérimente le flow et comment puis-je en créer davantage?", "context": "Comprenez vos zones d'alignement naturel" },
+      { "title": "Schémas relationnels", "question": "Comment mes traits peuvent-ils influencer mes interactions avec les autres?", "context": "Explorez la dynamique interpersonnelle grâce à la conscience des traits" }
+    ],
+    "finalPrivacyNote": "Votre conversation est privée et conçue pour vous aider à explorer l'alignement dans votre propre vie",
+    "scoreSummary": "Vos scores Multiple Natures sont : {{scores}}."
+  },
+  "accountView": {
+    "title": "Paramètres du compte",
+    "description": "Gérez votre profil et les paramètres de votre compte",
+    "footer": "© {{year}} Xavigate. Tous droits réservés."
+  },
+  "accountSidebar": {
+    "sectionTitle": "Personnel",
+    "profile": "Profil",
+    "password": "Mot de passe"
+  },
+  "profileTab": {
+    "header": "Informations du profil",
+    "firstNameLabel": "Prénom",
+    "lastNameLabel": "Nom",
+    "usernameLabel": "Nom d'utilisateur",
+    "emailLabel": "Email",
+    "placeholderFirstName": "Prénom",
+    "placeholderLastName": "Nom",
+    "placeholderUsername": "votrenom",
+    "placeholderEmail": "Adresse e-mail",
+    "cancel": "Annuler",
+    "saveChanges": "Enregistrer les modifications",
+    "saveSuccess": "Profil mis à jour avec succès.",
+    "saveError": "Échec de la mise à jour du profil, veuillez réessayer."
+  },
+  "passwordTab": {
+    "header": "Modifier le mot de passe",
+    "description": "Mettez à jour votre mot de passe pour sécuriser votre compte.",
+    "currentPasswordLabel": "Mot de passe actuel",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "confirmPasswordLabel": "Confirmer le nouveau mot de passe",
+    "cancel": "Annuler",
+    "updatePassword": "Mettre à jour le mot de passe",
+    "minLengthError": "Le mot de passe doit comporter au moins 8 caractères.",
+    "mismatchError": "Les nouveaux mots de passe ne correspondent pas.",
+    "updateSuccess": "✅ Mot de passe mis à jour avec succès."
+  }
+  ,
+  "login": {
+    "title": "Se connecter",
+    "emailLabel": "Adresse e-mail",
+    "passwordLabel": "Mot de passe",
+    "submitButton": "Se connecter",
+    "newUser": "Nouvel utilisateur ?",
+    "registerLink": "Inscrivez-vous ici",
+    "errors": {
+      "userNotFound": "Aucun compte trouvé pour cette adresse e-mail. Veuillez vous inscrire.",
+      "incorrectCredentials": "E-mail ou mot de passe incorrect.",
+      "notConfirmed": "Votre e-mail n'est pas confirmé. Veuillez vérifier votre boîte de réception pour le lien de confirmation.",
+      "loginFailed": "Échec de la connexion."
+    }
+  },
+  "register": {
+    "title": "S'inscrire",
+    "emailLabel": "Adresse e-mail",
+    "passwordLabel": "Mot de passe",
+    "nextButton": "Suivant",
+    "nextLoading": "Inscription...",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "signIn": "Se connecter",
+    "firstNameLabel": "Prénom",
+    "lastNameLabel": "Nom",
+    "usernameLabel": "Nom d'utilisateur",
+    "termsLabel": "J'accepte les conditions d'utilisation",
+    "registerButton": "S'inscrire",
+    "resendButton": "Renvoyer l'e-mail de vérification",
+    "resendLoading": "Renvoyer...",
+    "successTitle": "Inscription réussie !",
+    "successMessage": "Nous avons envoyé un lien de vérification à {{email}}. Veuillez vérifier votre boîte de réception.",
+    "returnToLogin": "Retour à la connexion",
+    "errors": {
+      "usernameExists": "Un compte avec cet e-mail existe déjà. Veuillez vous connecter.",
+      "registrationFailed": "Échec de l'inscription. Veuillez réessayer."
+    },
+    "resend": {
+      "success": "E-mail de vérification renvoyé. Veuillez vérifier votre boîte de réception.",
+      "failure": "Échec de la réexpédition de l'e-mail de vérification."
+    }
+  },
+  "onboarding": {
+    "title": "Bienvenue dans votre parcours d'alignement",
+    "intro": "Nous sommes ravis de vous accueillir ! Notre mission est de vous aider à découvrir vos talents naturels et à faire des choix de vie alignés. Ce parcours a été conçu pour être simple, pertinent et spécialement adapté pour vous.",
+    "benefits": [
+      "Comprenez vos talents naturels et vos tendances comportementales.",
+      "Alignez vos décisions sur vos motivations et vos valeurs fondamentales.",
+      "Obtenez des conseils pratiques pour naviguer dans les choix importants de la vie."
+    ],
+    "prompt": "Êtes-vous prêt à commencer votre parcours ?",
+    "agreeLabel": "J'ai lu et j'accepte les",
+    "termsLink": "Conditions générales",
+    "back": "Retour",
+    "start": "Commencer"
+  }
+}

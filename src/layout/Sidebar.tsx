@@ -1,7 +1,14 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import logo from '@/assets/Xavigate_Logo.svg';
 import { useScreenSize } from '@/layout/useScreenSize';
 import UserMenu from './UserMenu';
+// Language selector for choosing app language
+import { LanguageSelector } from '@/components/language';
 import { Text, Button } from '@/design-system/components';
+import Icon from '@/design-system/components/Icon';
+import { COLORS } from '@/design-system/theme/colors';
+import { SPACING } from '@/design-system/theme/spacing';
 import { MessageSquare, Compass, User, UserCircle, X } from 'lucide-react';
 
 type SidebarProps = {
@@ -12,100 +19,105 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ setActiveView, isVisible, onClose, activeView }: SidebarProps) {
+  const { t } = useTranslation();
   const { isMobile } = useScreenSize();
   if (!isVisible) return null;
 
   const navItems = [
     {
       id: 'chat',
-      label: 'Chat',
-      icon: <MessageSquare size={18} style={{ marginRight: '12px', color: '#10b981' }} />,
-    },
-    {
-      id: 'avatar',
-      label: 'Avatar',
-      icon: <UserCircle size={18} style={{ marginRight: '12px', color: '#6366f1' }} />,
+      label: t('navigation.chat'),
+      icon: (
+        <Icon size={18} color={COLORS.primary[500]} style={{ marginRight: SPACING['2'] }}>
+          <MessageSquare />
+        </Icon>
+      ),
     },
     {
       id: 'mntest',
-      label: 'MN Profile',
-      icon: <User size={18} style={{ marginRight: '12px', color: '#f59e0b' }} />,
+      label: t('navigation.assessment'),
+      icon: (
+        <Icon size={18} color={COLORS.accent.green[500]} style={{ marginRight: SPACING['2'] }}>
+          <User />
+        </Icon>
+      ),
     },
   ];
 
   return (
     <div
       style={{
-        width: isMobile ? '85%' : '260px',
-        minWidth: isMobile ? '240px' : '260px',
+        // Narrower width on mobile for responsive sidebar
+        width: isMobile ? '200px' : '260px',
+        minWidth: isMobile ? '200px' : '260px',
         backgroundColor: '#fff',
         borderRight: '1px solid #e5e7eb',
-        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        zIndex: 100,
+        justifyContent: 'flex-start',
+        position: isMobile ? 'fixed' : 'relative',
+        top: isMobile ? 0 : undefined,
+        left: isMobile ? 0 : undefined,
+        height: isMobile ? '100vh' : 'auto',
+        zIndex: isMobile ? 100 : undefined,
         padding: '1.5rem 1rem',
         boxSizing: 'border-box',
       }}
     >
-      <div>
-        {/* Header with optional close */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem',
-          }}
-        >
-          <Text
-            variant="subtitle"
-            style={{ display: 'flex', alignItems: 'center', color: '#4338ca', fontWeight: 600 }}
-          >
-            <Compass size={20} style={{ marginRight: '0.5rem' }} />
-            Xavigate
-          </Text>
-          {isMobile && (
-            <Button variant="ghost" onClick={onClose} style={{ padding: 4, minWidth: 'auto' }}>
-              <X size={20} color="#6B7280" />
-            </Button>
-          )}
-        </div>
-
-        {/* Navigation */}
-        {navItems.map((item) => (
-          <Button
-            key={item.id}
-            variant="ghost"
-            onClick={() => setActiveView(item.id)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              width: '100%',
-              textAlign: 'left',
-              backgroundColor: item.id === activeView ? '#eef2ff' : 'transparent',
-              color: item.id === activeView ? '#4338ca' : '#111827',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '6px',
-              fontWeight: item.id === activeView ? 600 : 400,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              marginBottom: '0.25rem',
-              minWidth: 'auto',
-            }}
-          >
-            {item.icon}
-            {item.label}
+      {/* Logo (and close on mobile) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+        }}
+      >
+        <img
+          src={logo}
+          alt="Xavigate logo"
+          style={{ maxWidth: '120px', height: 'auto', margin: 0 }}
+        />
+        {isMobile && (
+          <Button variant="ghost" onClick={onClose} style={{ padding: 4, minWidth: 'auto' }}>
+            <X size={20} color="#6B7280" />
           </Button>
-        ))}
+        )}
       </div>
 
-      <UserMenu setActiveView={setActiveView} />
+      {/* Navigation items */}
+      {navItems.map((item) => (
+        <Button
+          key={item.id}
+          variant="ghost"
+          onClick={() => setActiveView(item.id)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            width: '100%',
+            textAlign: 'left',
+            backgroundColor: item.id === activeView ? '#eef2ff' : 'transparent',
+            color: item.id === activeView ? '#4338ca' : '#111827',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '6px',
+            fontWeight: item.id === activeView ? 600 : 400,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+            marginBottom: '0.25rem',
+            minWidth: 'auto',
+          }}
+        >
+          {item.icon}
+          {item.label}
+        </Button>
+      ))}
+
+      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {/* Language selector above user menu */}
+        <LanguageSelector />
+        <UserMenu setActiveView={setActiveView} />
+      </div>
     </div>
   );
 }

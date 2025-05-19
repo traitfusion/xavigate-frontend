@@ -1,33 +1,16 @@
 // src/ui-kit/components/chat/WelcomeScreen.tsx
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface WelcomeScreenProps {
   onSuggestionClick?: (text: string) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
-  const suggestions = [
-    {
-      title: 'Trait Recognition',
-      question: 'What traits might be showing up in my daily patterns?',
-      context: 'Explore your natural behavioral tendencies',
-    },
-    {
-      title: 'Alignment Diagnosis',
-      question: 'I feel drained after work meetings. Could this be misalignment?',
-      context: 'Identify potential misalignments in specific contexts',
-    },
-    {
-      title: 'Flow States',
-      question: 'When do I experience flow and how can I create more of it?',
-      context: 'Understand your natural alignment zones',
-    },
-    {
-      title: 'Relationship Patterns',
-      question: 'How might my traits influence my interactions with others?',
-      context: 'Explore interpersonal dynamics through trait awareness',
-    },
-  ];
+  const { t } = useTranslation();
+  // Load suggestions from translations
+  const suggestions: Array<{ title: string; question: string; context: string }> =
+    t('chat.suggestions', { returnObjects: true });
 
   return (
     <div
@@ -81,7 +64,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
           fontFamily: '"Georgia", serif',
         }}
       >
-        Welcome to Your Alignment Journey
+        {t('chat.welcomeTitle')}
       </h2>
 
       <p
@@ -93,9 +76,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
           maxWidth: '600px',
         }}
       >
-        I'm here to help you explore your natural traits and find greater alignment in your life.
-        Our conversations will be most helpful when you share specific situations, patterns, or
-        questions about how you engage with the world.
+        {t('chat.welcomeDescription')}
       </p>
 
       <div
@@ -118,7 +99,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
             textAlign: 'center',
           }}
         >
-          Conversation Starters
+          {t('chat.convoStartersTitle')}
         </h3>
 
         <div
@@ -197,7 +178,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
           lineHeight: '1.6',
         }}
       >
-        Your conversation is private and designed to help you explore alignment in your own life
+        {t('chat.finalPrivacyNote')}
       </p>
     </div>
   );

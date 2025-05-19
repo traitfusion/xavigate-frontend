@@ -1,14 +1,22 @@
 // utils/auth.ts
 // Helpers for AWS Cognito PKCE Authorization Code flow
 
+// Derive Cognito domain from awsConfig or env var
+import { awsConfig } from '../aws.exports';
+const { region: COGNITO_REGION, userPoolId: USER_POOL_ID, userPoolClientId: USER_POOL_CLIENT_ID } =
+  awsConfig.Auth.Cognito;
+// Derive default domain prefix: region + pool suffix (lowercased)
+const [regionPrefix, poolSuffix] = USER_POOL_ID.split('_');
+const DEFAULT_DOMAIN_PREFIX = `${regionPrefix}${poolSuffix.toLowerCase()}`;
 const COGNITO_DOMAIN =
   process.env.REACT_APP_COGNITO_DOMAIN ||
-  'https://us-east-1csh9tzfjf.auth.us-east-1.amazoncognito.com';
+  `https://${DEFAULT_DOMAIN_PREFIX}.auth.${COGNITO_REGION}.amazoncognito.com`;
 
 // Cognito App Client ID
+// Cognito App Client ID from awsConfig or env var
 const CLIENT_ID =
   process.env.REACT_APP_COGNITO_CLIENT_ID ||
-  '56352i5933v40t36u1fqs2fe3e';
+  USER_POOL_CLIENT_ID;
 
 const SCOPES = process.env.REACT_APP_COGNITO_SCOPES || 'openid email phone';
 

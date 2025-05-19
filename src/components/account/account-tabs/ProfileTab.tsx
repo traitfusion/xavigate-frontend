@@ -1,29 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User } from 'lucide-react';
+import { fetchUserProfile } from '@/api/fetchUserProfile';
 
-type ProfileTabProps = {
+const BASE_URL =
+  import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_BACKEND_URL ||
+  process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_BACKEND_URL ||
+  '/api';
+const TOKEN = 'foo';
+
+ type ProfileTabProps = {
   user: {
+    uuid: string;
     name?: string;
     email?: string;
-    username?: string;
   };
 };
 
 export default function ProfileTab({ user }: ProfileTabProps) {
-  const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
-  const [lastName, setLastName] = useState(user?.name?.split(' ')[1] || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const { t } = useTranslation();
+  // Initialize form fields; will load real data from profile API
+  const [firstName, setFirstName] = useState<string>('');
+  const [lastName, setLastName] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load existing profile data on mount
+  useEffect(() => {
+    if (!user?.uuid) return;
+    fetchUserProfile(user.uuid)
+      .then((data: any) => {
+        // Map various possible keys from backend
+        setFirstName(
+          data.firstName || data.given_name || data.givenName || ''
+        );
+        setLastName(
+          data.lastName || data.family_name || data.familyName || ''
+        );
+        setUsername(
+          data.username || data.preferred_username || data.preferredUsername || ''
+        );
+        setEmail(data.email || data.userEmail || '');
+      })
+      .catch(() => {
+        // Leave blank on fetch error
+      });
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('✅ Profile Saved:', { firstName, lastName, username, email });
+    setStatus('saving');
+    setMessage('');
+    try {
+      const res = await fetch(`${BASE_URL}/profile/${user.uuid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TOKEN}`,
+        },
+        body: JSON.stringify({ firstName, lastName, username, email }),
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      setStatus('success');
+      setMessage(t('profileTab.saveSuccess'));
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setStatus('error');
+      setMessage(t('profileTab.saveError'));
+    }
   };
 
   return (
-    <div style={{ maxWidth: '480px', width: '100%' }}>
-      <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>
-        Profile Information
+    <div style={{ padding: '0 24px', boxSizing: 'border-box' }}>
+      <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>
+        {t('profileTab.header')}
       </h2>
 
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
@@ -42,8 +95,9 @@ export default function ProfileTab({ user }: ProfileTabProps) {
           <User size={32} />
         </div>
         <div style={{ marginLeft: '16px' }}>
+          {/* Display full name only from profile data */}
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>
-            {firstName || 'Anonymous'}
+            {[firstName, lastName].filter(Boolean).join(' ') || 'Anonymous'}
           </h3>
           <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{email}</p>
         </div>
@@ -52,48 +106,48 @@ export default function ProfileTab({ user }: ProfileTabProps) {
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={labelStyle}>First Name</label>
+            <label style={labelStyle}>{t('profileTab.firstNameLabel')}</label>
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               style={inputStyle}
-              placeholder="First Name"
+              placeholder={t('profileTab.placeholderFirstName')}
               required
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Last Name</label>
+            <label style={labelStyle}>{t('profileTab.lastNameLabel')}</label>
             <input
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               style={inputStyle}
-              placeholder="Last Name"
+              placeholder={t('profileTab.placeholderLastName')}
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Username</label>
+            <label style={labelStyle}>{t('profileTab.usernameLabel')}</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
               style={inputStyle}
-              placeholder="yourusername"
+              placeholder={t('profileTab.placeholderUsername')}
               required
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Email</label>
+            <label style={labelStyle}>{t('profileTab.emailLabel')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={inputStyle}
-              placeholder="Email Address"
+              placeholder={t('profileTab.placeholderEmail')}
               required
             />
           </div>
@@ -117,13 +171,15 @@ export default function ProfileTab({ user }: ProfileTabProps) {
             }}
             style={cancelButtonStyle}
           >
-            Cancel
+            {t('profileTab.cancel')}
           </button>
           <button type="submit" style={saveButtonStyle}>
-            Save Changes
+            {t('profileTab.saveChanges')}
           </button>
         </div>
       </form>
+      {/* close inner container */}
+      </div>
     </div>
   );
 }

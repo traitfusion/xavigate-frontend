@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   ChevronUp,
   User,
@@ -17,6 +18,7 @@ type UserMenuProps = {
 };
 
 export default function UserMenu({ setActiveView }: UserMenuProps) {
+  const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -85,9 +87,11 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
           cursor: 'pointer',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <User size={14} style={{ marginRight: '16px' }} />
-          <strong>{user?.name || 'Anonymous'}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+          <User size={14} style={{ marginRight: '8px', flexShrink: 0 }} />
+          <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1 }}>
+            {user?.name || 'Anonymous'}
+          </strong>
         </div>
         <ChevronUp
           size={14}
@@ -124,7 +128,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             style={menuItemStyle}
           >
             <FileText size={14} style={{ marginRight: '16px', color: '#f59e0b' }} />
-            Terms of Service
+            {t('menu.terms')}
           </div>
 
           {/* 2. Privacy Policy */}
@@ -136,7 +140,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             style={menuItemStyle}
           >
             <Shield size={14} style={{ marginRight: '16px', color: '#10b981' }} />
-            Privacy Policy
+            {t('menu.privacy')}
           </div>
 
           {/* 3. About Xavigate */}
@@ -148,7 +152,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             style={menuItemStyle}
           >
             <Info size={14} style={{ marginRight: '16px', color: '#4f46e5' }} />
-            About Xavigate
+            {t('menu.about')}
           </div>
 
           {/* 4. Help Center */}
@@ -160,7 +164,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             style={menuItemStyle}
           >
             <HelpCircle size={14} style={{ marginRight: '16px', color: '#3b82f6' }} />
-            Help Center
+            {t('menu.help')}
           </div>
 
           {/* 5. Account Settings */}
@@ -172,7 +176,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             style={menuItemStyle}
           >
             <Settings size={14} style={{ marginRight: '16px' }} />
-            Account Settings
+            {t('menu.accountSettings')}
           </div>
 
           {/* 6. Sign Out */}
@@ -180,6 +184,8 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             onClick={() => {
               signOut();
               setUserMenuOpen(false);
+              // redirect to login screen
+              navigate('/login');
             }}
             style={{
               padding: '0.75rem 1rem',
@@ -191,7 +197,7 @@ export default function UserMenu({ setActiveView }: UserMenuProps) {
             }}
           >
             <LogOut size={14} style={{ marginRight: '16px' }} />
-            Sign Out
+            {t('menu.signOut')}
           </div>
         </div>
       )}
