@@ -11,9 +11,10 @@ import AnimationStyles from './AnimationStyles';
 import { Message } from './types';
 import { getTimestamp, getOrCreateUserUUID } from './utils';
 import { fetchUserProfile } from '@/api/fetchUserProfile';
+import { useToast } from '@/components/toaster/useToast';
 
-// Base URL for backend API gateway (uses proxy in development to bypass CORS)
-const BASE_URL = '/api';
+// Base URL for chat service API
+const BASE_URL = 'http://chat.xavigate.com:8080/api';
 
 // Remove unused interface to fix the warning
 export interface RagChatViewProps {}
@@ -22,6 +23,7 @@ export default function RagChatView(props: RagChatViewProps) {
   const navigate = useNavigate();
   const { user, idToken } = useAuth();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   // Profile and test status
   const [profile, setProfile] = useState<{ traitScores: Record<string, any> }>({ traitScores: {} });
   const [profileLoading, setProfileLoading] = useState<boolean>(true);
@@ -31,11 +33,11 @@ export default function RagChatView(props: RagChatViewProps) {
     if (!user?.uuid) return;
     (async () => {
       setProfileLoading(true);
-      const prof = await fetchUserProfile(user.uuid);
+      const prof = await fetchUserProfile(user.uuid, idToken as any);
       setProfile(prof);
       setProfileLoading(false);
     })();
-  }, [user?.uuid]);
+  }, [user?.uuid, idToken]);
 
   // Determine if the user has taken the MN test based on profile data
   const testTaken = !profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0;
@@ -71,7 +73,7 @@ export default function RagChatView(props: RagChatViewProps) {
         // Fetch memory from storage service according to docs
         const res = await fetch(`${BASE_URL}/storage/memory/get/${uuid}`, {
           headers: { 
-            Authorization: `Bearer foo`, // Use the development token
+            Authorization: `Bearer ${idToken || 'foo'}`, // Use idToken if available, otherwise use the development token
             'Content-Type': 'application/json',
           },
         });
@@ -126,7 +128,7 @@ export default function RagChatView(props: RagChatViewProps) {
         console.error('❌ Error fetching session memory:', err);
       }
     })();
-  }, [uuid]);
+  }, [uuid, idToken]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -169,187 +171,98 @@ export default function RagChatView(props: RagChatViewProps) {
   const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = input.trim();
-    const lower = trimmed.toLowerCase();
-    // If user asks about their scores, respond directly
-    if (!profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0
-      && (lower.includes('score') || lower.includes('scores') || lower.includes('mntest'))
-    ) {
-      const summary = Object.entries(profile.traitScores)
-        .map(([trait, score]) => `${trait}: ${score}`)
-        .join(', ');
-      const text = String(t('chat.scoreSummary', { scores: summary }));
-      const assistantMsg: Message = {
-        sender: 'assistant',
-        text,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      setInput('');
+    if (!trimmed) return;
+    // Ensure we have an authenticated user before sending
+    const uid = user?.uuid;
+    if (!uid) {
+      console.error('No authenticated user; cannot send chat message');
       return;
     }
-    if (!trimmed) return;
-
-    // Build prompt: include MN test scores if available, otherwise use raw input
-    let ragPrompt = trimmed;
-    if (!profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0) {
-      const scoreSummary = Object.entries(profile.traitScores)
-        .map(([trait, score]) => `${trait}: ${score}`)
-        .join(', ');
-      ragPrompt = `My Multiple Natures scores are [${scoreSummary}]. ${trimmed}`;
+    // Grab username/email for ChatRequest
+    const email = user.email;
+    // Ensure we have a valid auth token before calling Chat API
+    if (!idToken) {
+      console.error('No idToken—cannot call Chat API');
+      return;
     }
-    // Prepend a focused instruction for concise answers about trait influences
-    const instruction = 'Based on my Multiple Natures scores above, in 2–3 bullet points explain how these traits tend to influence my interactions with others.';
-    const finalPrompt = `${instruction}\n\n${ragPrompt}`;
-
-    // Add user message immediately for better UX
+    console.log('Using idToken:', idToken);
+    // Build chat prompt with user's MN scores if available
+    const testTaken = !profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0;
+    let chatPrompt = trimmed;
+    if (testTaken) {
+      const scoreSummary = Object.entries(profile.traitScores)
+        .map(([t, s]) => `${t}: ${s}`)
+        .join(', ');
+      const instruction = 'Based on my Multiple Natures scores below, answer in 2–3 bullet points:';
+      chatPrompt = `${instruction}\n[${scoreSummary}]\n\n${trimmed}`;
+    }
+    // Append user message to chat
     const userMessage: Message = {
       sender: 'user',
       text: trimmed,
       timestamp: getTimestamp(),
     };
-
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-
     try {
-      // Use the RAG endpoint via the same API base path (proxed in development).
-      const ragUrl = `${BASE_URL}/rag/query?prompt=${encodeURIComponent(finalPrompt)}`;
-      console.log(`Using RAG service: ${ragUrl}`);
-      
-      const ragRes = await fetch(ragUrl, {
-        headers: {
-          'Authorization': 'Bearer foo'
-        }
-      });
-      
-      if (!ragRes.ok) {
-        throw new Error(`RAG service returned ${ragRes.status}`);
-      }
-      
-      const ragData = await ragRes.json();
-      
-      // Build a dynamic, context-aware response based on the query
-      let responseText = '';
-      const fullText = (ragData.result || '').trim();
-      const lowerQuery = trimmed.toLowerCase();
-
-      if (ragData.result) {
-        // Definition queries (e.g., "what is X", "definition of X")
-        if (lowerQuery.includes('what is') || lowerQuery.includes('definition of')) {
-          const conceptMatch = lowerQuery.match(/what is ([^?]+)|definition of ([^?]+)/i);
-          const concept = conceptMatch ? (conceptMatch[1] || conceptMatch[2]).trim() : '';
-          const paragraphs = fullText.split('\n\n');
-          if (concept && fullText.toLowerCase().includes(concept.toLowerCase())) {
-            const relevant = paragraphs.filter((p: string) =>
-              p.toLowerCase().includes(concept.toLowerCase()) && p.length > 50 && !p.includes(': ')
-            );
-            if (relevant.length) {
-              responseText = `${concept.charAt(0).toUpperCase() + concept.slice(1)} refers to ${relevant[0].trim()}`;
-            } else {
-              const sentences = fullText.split(/[.!?]/).filter((s: string) => s.trim().length > 0);
-              const rs = sentences.filter((s: string) => s.toLowerCase().includes(concept.toLowerCase()) && s.length > 20);
-              if (rs.length) {
-                responseText = `${concept.charAt(0).toUpperCase() + concept.slice(1)} refers to ${rs[0].trim()}.`;
-                if (rs[1]) responseText += ` ${rs[1].trim()}.`;
-              } else {
-                const defPara = paragraphs.find((p: string) => p.includes(': ') || p.includes(' is ') || p.includes(' are '));
-                responseText = (defPara || paragraphs[0] || fullText).trim();
-              }
-            }
-          } else {
-            responseText = paragraphs[0] || fullText;
-          }
-        }
-        // Instructional ("how to") queries
-        else if (lowerQuery.includes('how to')) {
-          const actionMatch = lowerQuery.match(/how to ([^?]+)/i);
-          const action = actionMatch ? actionMatch[1].trim() : '';
-          const paragraphs = fullText.split('\n\n');
-          const instr = paragraphs.filter((p: string) =>
-            (p.includes('•') || p.includes(':') || p.toLowerCase().includes('step') ||
-             p.toLowerCase().includes('try') || p.toLowerCase().includes('practice')) &&
-            p.length > 40
-          );
-          responseText = instr.length
-            ? `Here's how you can ${action}:\n\n${instr.slice(0, 2).join('\n\n')}`
-            : `To ${action}, consider this information:\n\n${paragraphs[0]}`;
-        }
-        // Personal context queries
-        else if (lowerQuery.includes('my') || lowerQuery.includes(' i ') || lowerQuery.includes(' me')) {
-          const intro = "I don't have access to your specific profile information. To get your personal Multiple Natures profile, you would need to take the assessment. However, I can provide general information about how Multiple Natures traits work together:\n\n";
-          const paragraphs = fullText.split('\n\n');
-          const rel = paragraphs.filter((p: string) => (p.includes('High') || p.includes('Facet') || p.includes('Nature')) && p.length > 40);
-          responseText = intro + (rel.length ? rel.slice(0, 2).join('\n\n') : "Multiple Natures helps you understand your natural behavioral traits and how they can be applied to find alignment in your life and work. Consider taking the assessment to discover your unique profile.");
-        }
-        // Default fallback for other queries
-        else {
-          const paragraphs = fullText.split('\n\n').filter((p: string) => p.trim().length > 40 && !p.includes(':') && !p.startsWith('•'));
-          responseText = paragraphs.length
-            ? paragraphs.slice(0, 2).join('\n\n')
-            : fullText.split('\n\n').find((p: string) => p.trim().length > 40) || fullText.substring(0, 300);
-        }
-
-        // Add conversational intro
-        if (lowerQuery.includes('how')) {
-          responseText = `Here's what I can tell you:\n\n${responseText}`;
-        } else if (!lowerQuery.includes('what is') && !lowerQuery.includes('definition')) {
-          responseText = `Based on the Multiple Natures framework:\n\n${responseText}`;
-        }
-
-        // Cleanup whitespace and ensure punctuation
-        responseText = responseText.trim().replace(/\n{3,}/g, '\n\n').replace(/\s{2,}/g, ' ');
-        if (!['.', '!', '?', ':'].some(ch => responseText.endsWith(ch))) {
-          responseText += '.';
-        }
-      } else {
-        responseText = "I'm sorry, I don't have enough information to answer that question about Multiple Natures.";
-      }
-      
-      // Add assistant response
-      const assistantMessage: Message = {
-        sender: 'assistant',
-        text: '',
-        fullText: responseText,
-        isTyping: true,
-        timestamp: getTimestamp(),
+      // Prepare single-message ChatRequest payload per swagger
+      const name = user.name || null;
+      // Flatten and prune traitScores to numeric values
+      const flatScores = Object.fromEntries(
+        Object.entries(profile.traitScores).filter(([_, v]) => typeof v === 'number')
+      );
+      // Limit to top 8 traits
+      const topTraits = Object.entries(flatScores)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+      const limitedScores = Object.fromEntries(topTraits);
+      const payload = {
+        userId: uid,
+        username: email,
+        fullName: name,
+        traitScores: limitedScores,
+        sessionId: uid,
+        message: trimmed,
       };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      // Save the conversation to memory
+      console.log('Chat payload:', payload);
+      // Network call with its own error handling
+      let res: Response;
       try {
-        const memoryData = {
-          userId: uuid,
-          sessionId: uuid,
-          messages: [
-            { role: 'user', content: trimmed },
-            { role: 'assistant', content: responseText }
-          ]
-        };
-        
-        await fetch(`${BASE_URL}/storage/memory/save`, {
+        res = await fetch(`${BASE_URL}/chat/query`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer foo'
+            'Authorization': `Bearer ${idToken}`,
           },
-          body: JSON.stringify(memoryData)
+          body: JSON.stringify(payload),
         });
-        
-        console.log('Conversation saved to memory');
-      } catch (memErr) {
-        console.warn('Failed to save to memory:', memErr);
+      } catch (networkErr) {
+        console.error('Network error calling chat:', networkErr);
+        showToast('Chat service unreachable. Try again later.');
+        return;
       }
+      // Handle HTTP errors
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({ detail: res.statusText }));
+        console.error('Chat API error', errJson);
+        showToast(
+          errJson.detail === 'Failed to fetch glossary chunks'
+            ? 'Sorry—our trait glossary is temporarily unavailable.'
+            : `Chat service error: ${errJson.detail || res.status}`
+        );
+        return;
+      }
+      // Parse and render assistant answer
+      const { answer } = await res.json();
+      setMessages(prev => [
+        ...prev,
+        { sender: 'assistant', text: answer?.trim() || '', timestamp: getTimestamp() }
+      ]);
     } catch (err: any) {
-      console.error('Error:', err);
-      
-      // Add error message
-      setMessages(prev => [...prev, {
-        sender: 'assistant',
-        text: `I'm sorry, I encountered an error: ${err.message}`,
-        timestamp: getTimestamp(),
-      }]);
+      console.error('Chat API error', err);
+      showToast('An unexpected error occurred. Please try again.');
+      return;
     } finally {
       setIsTyping(false);
     }
@@ -388,17 +301,17 @@ export default function RagChatView(props: RagChatViewProps) {
           overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#FAFAFA',
-            justifyContent: messages.length > 0 ? 'flex-start' : 'flex-end',
-          }}
-        >
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '0 24px 24px', // remove top padding, keep sides and bottom
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#FAFAFA',
+          justifyContent: messages.length > 0 ? 'flex-start' : 'flex-end',
+        }}
+      >
           {renderMessages()}
           {isTyping && <ThinkingIndicator />}
           <div ref={bottomRef} />

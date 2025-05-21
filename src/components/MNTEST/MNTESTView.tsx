@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import useNavigate if needed for routing
 import MNTestForm from './MNTestForm';
 import { useAuth } from '@/context/AuthContext';
 import { Card, Text, Button } from '@/design-system/components';
+import { submitTraitScores } from '@/api/api';
+// Props for MNTESTView
+interface MNTESTViewProps {
+  onComplete: (scores: Record<string, number>) => void;
+}
 
-const MNTESTView: React.FC = () => {
+const MNTESTView: React.FC<MNTESTViewProps> = ({ onComplete }) => {
   const { user, idToken } = useAuth();
   const uuid = user?.uuid;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
-  const RESULT_URL = '/api/mntest'; // GET: uses Vite/CRA proxy for fetching results
-  const SUBMIT_URL = '/api/mntest/submit'; // POST: submission endpoint via proxy
 
   useEffect(() => {
     if (!uuid || !idToken) {
@@ -20,12 +22,13 @@ const MNTESTView: React.FC = () => {
       return;
     }
 
-    console.log("🧠 Fetching MN result for:", uuid);
-    console.log("🪪 Token preview:", idToken?.slice(0, 50));
+    console.log("🧐 Fetching MN result for:", uuid);
+    console.log("🖺 Token preview:", idToken?.slice(0, 50));
 
-    fetch(`${RESULT_URL}/result?userId=${uuid}`, {
+    fetch(`/api/mntest/result?userId=${uuid}`, {
       headers: {
-        Authorization: `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
       },
     })
       .then((res) => {
@@ -51,7 +54,7 @@ const MNTESTView: React.FC = () => {
 
   const handleComplete = async (scores: Record<string, number>) => {
     console.log("📦 Submitting scores:", scores);
-    console.log("🪪 Using token:", idToken?.slice(0, 50));
+    console.log("🖺 Using token:", idToken?.slice(0, 50));
     console.log("👤 Using userId:", uuid);
 
     try {
@@ -59,31 +62,16 @@ const MNTESTView: React.FC = () => {
     } catch {}
 
     if (uuid && idToken) {
-      try {
-        const res = await fetch(SUBMIT_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({ userId: uuid, traitScores: scores }),
-        });
-
-        console.log("📡 Response status:", res.status);
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.warn(`❌ Submit failed: ${res.status}`, text);
-        } else {
-          console.log("✅ Submit successful!");
-        }
-      } catch (err) {
-        console.error('🚨 Error submitting MNTEST:', err);
+      const success = await submitTraitScores(uuid, scores, idToken);
+      if (success) {
+        console.log("✅ Submit successful!");
+      } else {
+        console.warn("❌ Submit failed via helper function.");
       }
     }
 
+    onComplete(scores);
     localStorage.setItem('onboardingCompleted', 'true');
-    navigate('/mntest-profile'); // redirect to profile screen
   };
 
   if (isLoading) {
@@ -126,7 +114,7 @@ const MNTESTView: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ marginTop: 0, padding: '24px' }}>
       <MNTestForm onComplete={handleComplete} />
     </div>
   );

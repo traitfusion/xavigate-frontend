@@ -14,6 +14,7 @@ import { ToastProvider } from './components/toaster/ToastProvider';
 
 import MNTESTView from './components/MNTEST/MNTESTView';
 import MNProfileView from './components/MNTEST/MNProfileView';
+import { Button } from '@/design-system/components';
 
 import AboutXavigate from './content/AboutXavigate';
 import PrivacyPolicy from './content/PrivacyPolicy';
@@ -28,6 +29,62 @@ import Onboarding from './components/onboarding/Onboarding';
 
 import { LanguageSelector } from './components/language';
 import { useTranslation } from 'react-i18next';
+
+// Connection status component
+interface ConnectionStatusProps {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  message?: string;
+  onRetry?: () => void;
+}
+
+const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, message, onRetry }) => {
+  if (status === 'idle') return null;
+  
+  const statusStyles = {
+    loading: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      text: 'text-blue-800',
+    },
+    success: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      text: 'text-green-800',
+    },
+    error: {
+      bg: 'bg-orange-50',
+      border: 'border-orange-200',
+      text: 'text-orange-800',
+    },
+  };
+  
+  const style = statusStyles[status] || statusStyles.loading;
+  
+  return (
+    <div className={`${style.bg} ${style.border} border rounded-lg p-3 mb-4 flex items-center justify-between`}>
+      <div className={`${style.text} text-sm`}>
+        {status === 'loading' && (
+          <span className="inline-block w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+        )}
+        {status === 'success' && '✅ '}
+        {status === 'error' && '⚠️ '}
+        {message || (
+          status === 'loading' ? 'Loading...' : 
+          status === 'success' ? 'Connected successfully' : 
+          'Connection issue detected'
+        )}
+      </div>
+      {status === 'error' && onRetry && (
+        <button 
+          onClick={onRetry}
+          className="text-sm px-3 py-1 rounded border border-orange-300 hover:bg-orange-100 transition-colors"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  );
+};
 
 function ContentLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -75,45 +132,98 @@ function AppContent() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeView, setActiveView] = useState(() => localStorage.getItem('activeView') || 'chat');
   const [traitScores, setTraitScores] = useState<Record<string, number>>({});
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
+  const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
 
-  useEffect(() => {
-    if (!user?.uuid || !idToken) return;
+  // Backend base URL (proxied prefix) from env
+  const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || '/api';
+  // Auth token from environment or fallback
+  const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
 
-    const fetchTraitScores = async (retries = 5) => {
-      try {
-        const url = `/api/mntest/result?userId=${user.uuid}`;
-        const response = await fetch(url, {
+  // Check backend for saved MN Test scores
+  const fetchTraitScores = async () => {
+    const uid = user?.uuid;
+    if (!uid) return;
+
+    setConnectionStatus({
+      status: 'loading',
+      message: 'Checking for saved MN Test scores...'
+    });
+
+    const token = idToken || AUTH_TOKEN;
+    try {
+      const response = await fetch(
+        `/api/mntest/result?userId=${uid}`,
+        {
           headers: {
-            Authorization: `Bearer ${idToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.status === 404) {
-          if (retries > 0) {
-            console.log(`Trait scores not ready. Retrying in 1s... (${retries} retries left)`);
-            setTimeout(() => fetchTraitScores(retries - 1), 1000);
-          } else {
-            console.warn('Trait scores not found after retries.');
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
-          return;
         }
+      );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Fetch failed: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-        setTraitScores(data.traitScores);
-        console.log('✅ Trait scores fetched:', data.traitScores);
-      } catch (err) {
-        console.error('Error fetching trait scores:', err);
+      if (response.status === 404) {
+        setConnectionStatus({
+          status: 'error',
+          message: 'No saved scores found.',
+          onRetry: fetchTraitScores
+        });
+        return;
       }
-    };
 
-    fetchTraitScores();
+      if (!response.ok) {
+        setConnectionStatus({
+          status: 'error',
+          message: 'Error fetching scores.',
+          onRetry: fetchTraitScores
+        });
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.traitScores) {
+        setTraitScores(data.traitScores);
+        setDataSource('primary');
+        setConnectionStatus({
+          status: 'success',
+          message: 'Scores loaded'
+        });
+      } else {
+        setConnectionStatus({
+          status: 'error',
+          message: 'No saved scores found.',
+          onRetry: fetchTraitScores
+        });
+      }
+    } catch {
+      setConnectionStatus({
+        status: 'error',
+        message: 'Error fetching scores.',
+        onRetry: fetchTraitScores
+      });
+    }
+  };
+  // Load trait scores on initialization
+
+  // Load trait scores on initialization
+  useEffect(() => {
+    if (user?.uuid) {
+      fetchTraitScores();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uuid, idToken]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('=== APP STATE ===');
+    console.log('User UUID:', user?.uuid);
+    console.log('Backend URL:', BACKEND_URL);
+    console.log('Trait Scores Count:', Object.keys(traitScores).length);
+    console.log('Data Source:', dataSource);
+    console.log('Connection Status:', connectionStatus.status);
+    console.log('=================');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uuid, traitScores, dataSource, connectionStatus]);
 
   const isContentPage = ['/about', '/privacy', '/terms', '/help'].includes(location.pathname);
 
@@ -140,15 +250,76 @@ function AppContent() {
         return (
           <AvatarComposer
             uuid={user?.uuid || 'unknown'}
-            backendUrl={import.meta.env.VITE_API_URL || 'http://localhost:8010'}
+            backendUrl={import.meta.env?.VITE_BACKEND_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8010'}
             onSave={(profile) => console.log('✅ Avatar saved:', profile)}
           />
         );
       case 'account':
         return <AccountView />;
       case 'mntest':
-        return <MNTESTView />;
-
+        if (connectionStatus.status === 'loading') {
+          return (
+            <ConnectionStatus
+              status="loading"
+              message="Checking for saved MN Test scores..."
+            />
+          );
+        }
+        if (connectionStatus.status === 'error') {
+          return (
+            <div style={{ padding: '0 32px', textAlign: 'center' }}>
+              <ConnectionStatus
+                status="error"
+                message={connectionStatus.message}
+                onRetry={connectionStatus.onRetry}
+              />
+              <p>You don't have any saved scores. Would you like to take the MN Test now?</p>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setConnectionStatus({ status: 'idle' });
+                  setTraitScores({});
+                }}
+                style={{ marginTop: '1rem' }}
+              >
+                Take the Test
+              </Button>
+            </div>
+          );
+        }
+        if (Object.keys(traitScores).length > 0) {
+          return (
+            <div style={{ padding: 0, margin: 0 }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginTop: '16px',
+                marginBottom: '8px',
+                padding: '0 32px'
+              }}>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setTraitScores({});
+                    localStorage.removeItem(`mntest_scores_${user?.uuid}`);
+                  }}
+                >
+                  Take Test Again
+                </Button>
+              </div>
+              <MNProfileView traitScores={traitScores} />
+            </div>
+          );
+        }
+        return (
+          <MNTESTView
+            onComplete={(scores) => {
+              setTraitScores(scores);
+              setDataSource('primary');
+              setConnectionStatus({ status: 'success', message: 'Test complete' });
+            }}
+          />
+        );
       case 'uikit':
         return <UIKitPlayground />;
       default:
@@ -156,45 +327,105 @@ function AppContent() {
     }
   };
 
-  if (!ready) return <div>{t('common.loading')}</div>;
+  // Loading state
+  if (!ready) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh' 
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-block',
+            width: '2rem',
+            height: '2rem',
+            borderRadius: '50%',
+            borderWidth: '4px',
+            borderStyle: 'solid',
+            borderColor: '#6366f1',
+            borderTopColor: 'transparent',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '1rem'
+          }}></div>
+          <p>{t('common.loading')}</p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      </div>
+    );
+  }
+  
+  // Not logged in
   if (!user) return <Navigate to="/login" replace />;
 
+  // Handle onboarding
   const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
   if (!onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
 
+  // NEW LAYOUT STRUCTURE with inline styles
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ 
+      display: 'flex', 
+      height: '100vh', 
+      overflow: 'hidden' 
+    }}>
+      {/* Sidebar */}
       {!isContentPage && (
-        <Sidebar
-          setActiveView={(view: string) => {
-            setActiveView(view);
-            if (isMobile) setSidebarOpen(false);
-          }}
-          isVisible={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          activeView={activeView}
-        />
+        <div style={{ display: sidebarOpen ? 'block' : 'none' }}>
+          <Sidebar
+            setActiveView={(view: string) => {
+              setActiveView(view);
+              if (isMobile) setSidebarOpen(false);
+            }}
+            isVisible={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            activeView={activeView}
+          />
+        </div>
       )}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      
+      {/* Main content area */}
+      <div style={{ 
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        height: '100vh'
+      }}>
+        {/* Mobile header */}
         {!isContentPage && (
-          <MobileHeader onToggle={() => isMobile && setSidebarOpen((prev) => !prev)} />
+          <div style={{ margin: 0, padding: '8px 0 0 0' }}>
+            <MobileHeader 
+              onToggle={() => {
+                if (isMobile) {
+                  setSidebarOpen(!sidebarOpen);
+                }
+              }}
+              className="mb-0" 
+            />
+          </div>
         )}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: isContentPage ? 0 : '2rem',
-            backgroundColor: '#fafafa',
-          }}
-        >
+        
+        {/* Content area - ZERO PADDING AT TOP */}
+        <div style={{ 
+          flex: 1, 
+          overflowY: 'auto',
+          backgroundColor: '#f9fafb',
+          padding: '16px 2rem 0',
+          margin: 0
+        }}>
           <Routes>
             <Route path="/about" element={<ContentLayout><AboutXavigate /></ContentLayout>} />
             <Route path="/privacy" element={<ContentLayout><PrivacyPolicy /></ContentLayout>} />
             <Route path="/terms" element={<ContentLayout><Terms /></ContentLayout>} />
             <Route path="/help" element={<ContentLayout><HelpCenter /></ContentLayout>} />
-            <Route path="/mntest" element={<MNTESTView />} />
             <Route path="*" element={renderView()} />
           </Routes>
         </div>

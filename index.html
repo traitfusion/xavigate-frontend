@@ -3,6 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <title>Xavigate</title>
+    
+    <!-- CSS Fix for white space issue -->
+    <style>
+      /* Force override all spacing issues */
+      .flex-1.overflow-y-auto,
+      [class*="content"],
+      [class*="view"],
+      [class*="layout"],
+      [class*="View"] {
+        display: block !important;
+        margin-top: -100px !important;
+        padding-top: 0 !important;
+      }
+      
+      /* Override flex behavior */
+      .flex, .flex-col, .flex-row {
+        display: flex !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+      }
+      
+      /* Apply negative margin to all main containers */
+      .flex-1.overflow-y-auto > *,
+      [class*="content"] > *,
+      [class*="view"] > *,
+      [class*="View"] > * {
+        margin-top: -50px !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

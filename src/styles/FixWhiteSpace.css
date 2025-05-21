@@ -1,0 +1,26 @@
+/* FixWhiteSpace.css */
+.flex-1.overflow-y-auto {
+  display: block !important;
+}
+
+.flex-1.overflow-y-auto > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Target any flex container that might be centering content */
+.flex, 
+.flex-col, 
+.flex-row, 
+[class*="flex-"] {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+
+/* Target specific components */
+[class*="MNProfile"],
+[class*="ChatView"],
+[class*="view"],
+[class*="View"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}

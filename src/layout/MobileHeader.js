@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function MobileHeader({ onToggle }) {
+export default function MobileHeader({ onToggle, className }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function MobileHeader({ onToggle }) {
   if (!isMobile) return null;
 
   return (
-    <div
+    <div className={className}
       style={{
         display: 'flex',
         alignItems: 'center',

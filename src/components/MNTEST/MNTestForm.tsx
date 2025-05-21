@@ -37,26 +37,27 @@ export default function MNTestForm({ onComplete }: MNTestFormProps) {
     return questions.slice(start, end);
   };
 
-  /**
-   * Calculate average score per trait based on user answers
-   */
-  const calculateScores = () => {
-    const scores: Record<string, number> = {};
-    const counts: Record<string, number> = {};
-    // Sum ratings and count occurrences
-    questions.forEach(({ id, trait }) => {
-      const rating = answers[id];
-      if (rating !== undefined) {
-        scores[trait] = (scores[trait] || 0) + rating;
-        counts[trait] = (counts[trait] || 0) + 1;
-      }
-    });
-    // Compute average (1-5 scale)
-    Object.keys(scores).forEach((trait) => {
-      scores[trait] = scores[trait] / (counts[trait] || 1);
-    });
-    return scores;
-  };
+// Map each trait category to its question IDs
+const TRAIT_QUESTION_MAP: Record<string, number[]> = MNTEST_ITEMS.reduce((map, item) => {
+  if (!map[item.traitCategory]) {
+    map[item.traitCategory] = [];
+  }
+  map[item.traitCategory].push(item.id);
+  return map;
+}, {} as Record<string, number[]>);
+
+/**
+ * Compute normalized trait scores from answers (1-5 scale → 2-10 range)
+ */
+const computeTraitScores = (answers: Record<number, number>): Record<string, number> => {
+  const traitScores: Record<string, number> = {};
+  Object.entries(TRAIT_QUESTION_MAP).forEach(([trait, qIds]) => {
+    const vals = qIds.map(id => answers[id] ?? 0);
+    const avg = vals.reduce((sum, v) => sum + v, 0) / qIds.length;
+    traitScores[trait] = avg * 2;
+  });
+  return traitScores;
+};
 
   // Handle going to the next page or completing the test
   const handleNext = async () => {
@@ -71,13 +72,10 @@ export default function MNTestForm({ onComplete }: MNTestFormProps) {
 
     // If this is the last page, calculate scores and complete
     if (currentPage === totalPages - 1) {
-      const finalScores = calculateScores();
-      
-      // Pass the scores to the parent component
-      onComplete(finalScores);
-      
-      // Parent component will handle saving to the backend
+      // Compute normalized trait scores
+      const finalScores = computeTraitScores(answers);
       console.log('Test completed with scores:', finalScores);
+      onComplete(finalScores);
     } else {
       // Go to next page
       setCurrentPage(prev => prev + 1);

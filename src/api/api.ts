@@ -3,18 +3,36 @@
 
 // API URL prefix: default to '/api'
 const PREFIX = '/api';
-// Auth token from env var
-const AUTH_TOKEN = process.env.REACT_APP_AUTH_TOKEN || '';
+
+// Handle both Vite and CRA environments
+const AUTH_TOKEN =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_AUTH_TOKEN) ||
+  process.env.REACT_APP_AUTH_TOKEN ||
+  '';
+
+const EXTERNAL_ENDPOINTS = {
+  mntest:
+    (typeof import.meta !== 'undefined' &&
+      import.meta.env &&
+      import.meta.env.VITE_BACKEND_URL) ||
+    process.env.REACT_APP_BACKEND_URL ||
+    'http://chat.xavigate.com:8080/api',
+};
 
 export type SessionMemory = {
   messages: any[];
 };
 
+export interface TraitScores {
+  [key: string]: number;
+}
+
 /**
  * Fetch the stored session memory for a given UUID.
  */
 export async function fetchSessionMemory(uuid: string): Promise<SessionMemory | null> {
-  // Match backend endpoint for session memory
   const res = await fetch(`${PREFIX}/session-memory/${uuid}`, {
     headers: {
       Authorization: `Bearer ${AUTH_TOKEN}`,
@@ -25,6 +43,59 @@ export async function fetchSessionMemory(uuid: string): Promise<SessionMemory | 
     return null;
   }
   return res.json();
+}
+
+/**
+ * Fetch trait scores from MNTEST service.
+ * Tries multiple endpoints with fallbacks.
+ */
+export async function fetchTraitScores(userId: string, idToken?: string): Promise<TraitScores | null> {
+  const endpoints = [
+    { url: `${PREFIX}/mntest/result`, name: 'Local API' },
+    { url: `${EXTERNAL_ENDPOINTS.mntest}/mntest/result`, name: 'External API' }
+  ];
+
+  let lastError = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Trying ${endpoint.name} at: ${endpoint.url}?userId=${userId}`);
+
+      const res = await fetch(`${endpoint.url}?userId=${userId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken || AUTH_TOKEN}`,
+        }
+      });
+
+      if (res.status === 404) {
+        console.log(`No test results found (404) from ${endpoint.name}`);
+        return {};
+      }
+
+      if (!res.ok) {
+        console.error(`${endpoint.name} request failed:`, res.status, res.statusText);
+        lastError = new Error(`HTTP ${res.status}: ${res.statusText}`);
+        continue;
+      }
+
+      const data = await res.json();
+
+      if (data?.traitScores) {
+        console.log(`Successfully fetched trait scores from ${endpoint.name}`);
+        return data.traitScores;
+      } else {
+        console.warn(`${endpoint.name} returned valid response but missing traitScores:`, data);
+        lastError = new Error('Missing trait scores in response');
+      }
+    } catch (error) {
+      console.error(`Error fetching from ${endpoint.name}:`, error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  console.error('All endpoints failed for trait scores fetch', lastError);
+  return null;
 }
 
 export interface GenerateParams {
@@ -46,7 +117,6 @@ export interface GenerateResponse {
 export async function generateResponse(
   params: GenerateParams
 ): Promise<GenerateResponse | null> {
-  // Match backend endpoint for generation
   const res = await fetch(`${PREFIX}/generate`, {
     method: 'POST',
     headers: {
@@ -60,4 +130,37 @@ export async function generateResponse(
     return null;
   }
   return res.json();
+}
+
+/**
+ * Submit trait scores to MNTEST service.
+ */
+export async function submitTraitScores(
+  userId: string,
+  traitScores: TraitScores,
+  idToken?: string
+): Promise<boolean> {
+  const url = `${PREFIX}/mntest/submit`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken || AUTH_TOKEN}`,
+      },
+      body: JSON.stringify({ userId, traitScores }),
+    });
+
+    if (!res.ok) {
+      console.error(`❌ Submit failed: ${res.status}`, await res.text());
+      return false;
+    }
+
+    console.log('✅ Trait scores submitted successfully');
+    return true;
+  } catch (err) {
+    console.error('🚨 Error submitting trait scores:', err);
+    return false;
+  }
 }

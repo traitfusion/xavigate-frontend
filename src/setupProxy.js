@@ -7,23 +7,28 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
  * The backend URL is read from REACT_APP_BACKEND_URL environment variable (must include '/api' suffix).
  * Fallback: 'http://chat.xavigate.com:8080/api'
  */
-// Proxy target: backend root URL without '/api' suffix
-const target = process.env.REACT_APP_BACKEND_URL || 'http://chat.xavigate.com:8080';
+// Determine backend URLs from environment variables
+// REACT_APP_BACKEND_URL should include '/api' suffix (e.g., http://host:port/api)
+const rawBackend = process.env.REACT_APP_BACKEND_URL || 'http://chat.xavigate.com:8080/api';
+// Strip trailing '/api' to proxy '/api' paths correctly
+const backendRoot = rawBackend.replace(/\/api\/?$/, '');
 
 module.exports = function (app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target,
+      target: backendRoot,
       changeOrigin: true,
       logLevel: 'debug',
     })
   );
   // Proxy WebSocket connections for real-time features (e.g., chat)
+  // Determine WebSocket backend separately if provided
+  const rawBackendWS = process.env.REACT_APP_BACKEND_WS_URL || backendRoot;
   app.use(
     '/ws',
     createProxyMiddleware({
-      target: process.env.REACT_APP_BACKEND_WS_URL || process.env.REACT_APP_BACKEND_URL?.replace(/\/api\/?$/, '') || 'http://chat.xavigate.com:8080',
+      target: rawBackendWS,
       changeOrigin: true,
       ws: true,
       logLevel: 'debug',

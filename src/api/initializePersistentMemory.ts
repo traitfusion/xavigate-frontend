@@ -1,7 +1,7 @@
 // src/api/initializePersistentMemory.ts
 
 export async function initializePersistentMemory(uuid: string): Promise<void> {
-  const API = process.env.REACT_APP_API_URL || 'http://localhost:8010';
+  const API = '/api';
 
   const res = await fetch(`${API}/persistent-memory`, {
     method: 'POST',

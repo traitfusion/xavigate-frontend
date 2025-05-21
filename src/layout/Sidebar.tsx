@@ -47,18 +47,17 @@ export default function Sidebar({ setActiveView, isVisible, onClose, activeView 
   return (
     <div
       style={{
-        // Narrower width on mobile for responsive sidebar
+        // Full-height sidebar with bottom-fixed actions
         width: isMobile ? '200px' : '260px',
         minWidth: isMobile ? '200px' : '260px',
         backgroundColor: '#fff',
         borderRight: '1px solid #e5e7eb',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-start',
         position: isMobile ? 'fixed' : 'relative',
-        top: isMobile ? 0 : undefined,
-        left: isMobile ? 0 : undefined,
-        height: isMobile ? '100vh' : 'auto',
+        top: 0,
+        left: 0,
+        height: '100vh',
         zIndex: isMobile ? 100 : undefined,
         padding: '1.5rem 1rem',
         boxSizing: 'border-box',

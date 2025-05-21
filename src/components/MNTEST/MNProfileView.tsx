@@ -1,70 +1,145 @@
 import React from 'react';
-import ResponsiveWrapper from '@/layout/ResponsiveWrapper';
-import { useTranslation } from 'react-i18next';
-import { Card, Text, Button } from '@/design-system/components';
-import MNGraph, { TraitScore } from './MNGraph';
-import { useNavigate } from 'react-router-dom';
+import { COLORS } from '@/design-system/theme/tokens';
+import { Card, Text } from '@/design-system/components';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from 'recharts';
 
-interface MNProfileViewProps {
+export interface MNProfileViewProps {
   traitScores: Record<string, number>;
-  onAskGPT?: (prompt: string) => void;
 }
 
-const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores, onAskGPT }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
 
-  if (!traitScores || Object.keys(traitScores).length === 0) {
-    return (
-      <ResponsiveWrapper>
-        <Card style={{ padding: '2rem', textAlign: 'center', marginTop: '2rem' }}>
-          <Text variant="h3" style={{ marginBottom: '1rem' }}>
-            ⚠️ No trait scores found.
-          </Text>
-          <Text variant="body" style={{ marginBottom: '1rem' }}>
-            Please complete the MNTEST to view your profile.
-          </Text>
-          <Button onClick={() => navigate('/mntest')}>Take the Test</Button>
-        </Card>
-      </ResponsiveWrapper>
-    );
-  }
+// Exact order of Multiple Intelligences from reference
+const MULTIPLE_INTELLIGENCES = [
+  'Gross Bodily',
+  'Fine Bodily',
+  'Interpersonal',
+  'Logical',
+  'Linguistic',
+  'Graphic Visual',
+  'Spatial Visual',
+  'Musical',
+  'Intrapersonal',
+  'Naturalistic',
+];
 
-  const MN_TRAITS = [
-    'Protective',
-    'Educative',
-    'Administrative',
-    'Creative',
-    'Healing',
-    'Entertaining',
-    'Providing',
-    'Entrepreneurial',
-    'Adventurous',
-  ];
+// Map between display labels and traitScores keys for Multiple Intelligences
+const MI_KEY_MAP: Record<string, string> = {
+  'Gross Bodily':   'grossBodily',
+  'Fine Bodily':    'fineBodily',
+  'Interpersonal':  'interpersonal',
+  'Logical':        'logical',
+  'Linguistic':     'linguistic',
+  'Graphic Visual': 'graphicVisual',
+  'Spatial Visual': 'spatialVisual',
+  'Musical':        'musical',
+  'Intrapersonal':  'intrapersonal',
+  'Naturalistic':   'naturalistic',
+};
+// Exact order of Multiple Natures from reference
+const MULTIPLE_NATURES = [
+  'Protective',
+  'Educative',
+  'Administrative',
+  'Creative',
+  'Healing',
+  'Entertaining',
+  'Providing',
+  'Entrepreneurial',
+  'Adventurous',
+];
 
-  const mnGraphScores: TraitScore[] = Object.entries(traitScores)
-    .filter(([trait]) => MN_TRAITS.includes(trait))
-    .map(([trait, scaled]) => ({ trait, scaled }));
+// Map between display labels and traitScores keys for Multiple Natures
+const MN_KEY_MAP: Record<string, string> = {
+  'Protective':     'protective',
+  'Educative':      'educative',
+  'Administrative': 'administrative',
+  'Creative':       'creative',
+  'Healing':        'healing',
+  'Entertaining':   'entertaining',
+  'Providing':      'providing',
+  'Entrepreneurial':'entrepreneurial',
+  'Adventurous':    'adventurous',
+};
+
+// Build data for recharts from labels and scores using key mapping
+// Build data for recharts from labels and scores; supports both mapped and label keys
+const toChartData = (
+  labels: string[],
+  map: Record<string, string>,
+  scores: Record<string, number>
+) =>
+  labels.map(name => ({
+    name,
+    score: scores[map[name]] ?? scores[name] ?? 0
+  }));
+
+const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores }) => {
+  const miData = toChartData(MULTIPLE_INTELLIGENCES, MI_KEY_MAP, traitScores);
+  const mnData = toChartData(MULTIPLE_NATURES, MN_KEY_MAP, traitScores);
 
   return (
-    <ResponsiveWrapper style={{ maxWidth: '800px', marginTop: '2rem' }}>
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1F2937' }}>
-          {t('profileSection.yourProfile')}
-        </h2>
-        <p style={{ fontSize: '14px', color: '#6B7280', marginTop: '0.5rem' }}>
-          {t('profileSection.traitHint')}
-        </p>
-      </div>
+    <div style={{ 
+      padding: '0 32px 24px', 
+      maxWidth: 960, 
+      marginLeft: 'auto', 
+      marginRight: 'auto',
+      marginTop: 0,
+      marginBottom: 0
+    }}>
 
-      <MNGraph scores={mnGraphScores} />
 
-      <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-        <Button onClick={() => navigate('/mntest')}>
-          Retake MNTEST
-        </Button>
-      </div>
-    </ResponsiveWrapper>
+      {/* Multiple Intelligences Chart */}
+      <Text variant="h2" style={{ marginTop: '16px', marginBottom: '1rem' }}>
+        Your Multiple Intelligences
+      </Text>
+      <Card padding="lg" style={{ marginBottom: '2rem' }}>
+        <ResponsiveContainer width="100%" height={miData.length * 40}>
+          <BarChart
+            data={miData}
+            layout="vertical"
+            margin={{ top: 10, right: 30, bottom: 10, left: 120 }}
+          >
+            <XAxis type="number" domain={[0, 10]} />
+            <YAxis type="category" dataKey="name" tick={{ style: { whiteSpace: 'nowrap' } }} />
+            <Tooltip />
+            <Bar dataKey="score" fill={COLORS.primary.DEFAULT}>
+              <LabelList dataKey="score" position="right" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+      {/* Multiple Natures Chart */}
+      <Text variant="h2" style={{ marginBottom: '1rem' }}>
+        Your Multiple Natures
+      </Text>
+      <Card padding="lg">
+        <ResponsiveContainer
+          width="100%"
+          height={mnData.length * 40}
+        >
+          <BarChart
+            data={mnData}
+            layout="vertical"
+            margin={{ top: 10, right: 30, bottom: 10, left: 120 }}
+          >
+            <XAxis type="number" domain={[0, 10]} />
+            <YAxis type="category" dataKey="name" tick={{ style: { whiteSpace: 'nowrap' } }} />
+            <Tooltip />
+            <Bar dataKey="score" fill={COLORS.purple.DEFAULT}>
+              <LabelList dataKey="score" position="right" />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+    </div>
   );
 };
 

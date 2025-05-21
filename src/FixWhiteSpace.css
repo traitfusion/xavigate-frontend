@@ -1,0 +1,26 @@
+/* Overrides to eliminate extra white space at top of views */
+/* Main scroll container: force block layout and kill top margin of first child */
+.flex-1.overflow-y-auto {
+  display: block !important;
+}
+.flex-1.overflow-y-auto > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* Ensure flex containers align content to the top */
+.flex,
+.flex-col,
+.flex-row,
+[class*="flex-"] {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+
+/* Reset margin/padding on key view components */
+[class*="MNProfile"],
+[class*="ChatView"],
+[class*="view"],
+[class*="View"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}

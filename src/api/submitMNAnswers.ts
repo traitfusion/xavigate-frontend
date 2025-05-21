@@ -6,7 +6,7 @@ export interface MNAnswerPayload {
 }
 
 export async function submitMNAnswers(payload: MNAnswerPayload): Promise<void> {
-  const API = process.env.REACT_APP_API_URL || 'http://localhost:8010';
+  const API = '/api';
 
   const res = await fetch(`${API}/mn/submit`, {
     method: 'POST',
