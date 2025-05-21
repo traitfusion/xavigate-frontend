@@ -89,15 +89,31 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, message, on
 function ContentLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const location = useLocation();
+
+  // Paths for static content pages (About, Privacy, Terms, Help)
+  const staticPaths = ['/about', '/privacy', '/terms', '/help'];
+  const isStaticPage = staticPaths.includes(location.pathname);
+  const showLanguageSelector = !isStaticPage;
 
   return (
     <ResponsiveWrapper>
       <div className="content-layout">
         <div className="content-header">
-          <button onClick={() => navigate(-1)} className="back-button">
-            ← {t('buttons.previous')}
-          </button>
-          <LanguageSelector />
+          {isStaticPage ? (
+            <a
+              href="#"
+              onClick={e => { e.preventDefault(); navigate(-1); }}
+              className="back-link"
+            >
+              ← {t('buttons.previous')}
+            </a>
+          ) : (
+            <button onClick={() => navigate(-1)} className="back-button">
+              ← {t('buttons.previous')}
+            </button>
+          )}
+          {showLanguageSelector && <LanguageSelector />}
         </div>
         <div className="content-body">
           {children}

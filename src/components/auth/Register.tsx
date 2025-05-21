@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import * as Auth from '@aws-amplify/auth';
 import { Link } from 'react-router-dom';
 import { Card, Form, FormGroup, Input, Button, Text } from '@/design-system/components';
+import Icon from '@/design-system/components/Icon';
+import { Eye, EyeOff } from 'lucide-react';
 import logo from '../../assets/Xavigate_Logo.svg';
 import { LanguageSelector } from '@/components/language';
 
@@ -12,6 +14,18 @@ export default function Register() {
   const [step, setStep] = useState<'credentials'|'profile'|'confirmation'>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  // Validate password meets Cognito requirements: min 8 chars, uppercase, lowercase, number, special char
+  const passwordValid = React.useMemo(
+    () => /^(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/.test(password),
+    [password]
+  );
+  // Individual password criteria for live feedback
+  const lengthValid = password.length >= 8;
+  const uppercaseValid = /[A-Z]/.test(password);
+  const lowercaseValid = /[a-z]/.test(password);
+  const numberValid = /\d/.test(password);
+  const specialValid = /[\W_]/.test(password);
   // Profile info step
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -29,7 +43,13 @@ export default function Register() {
     e.preventDefault();
     setError(null);
     if (step === 'credentials') {
+      // Validate password meets Cognito policy before proceeding
+      if (!passwordValid) {
+        setError(t('register.passwordRequirements'));
+        return;
+      }
       // Move to profile info step
+      setError(null);
       setStep('profile');
       return;
     }
@@ -98,10 +118,59 @@ export default function Register() {
             <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </FormGroup>
           <FormGroup label={t('register.passwordLabel') || 'Password'} htmlFor="password" required>
-            <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <div style={{ position: 'relative' }}>
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                style={{ paddingRight: '4rem' }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                aria-label={showPassword ? t('register.hidePassword') : t('register.viewPassword')}
+                onClick={() => setShowPassword(show => !show)}
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  padding: 0,
+                }}
+              >
+                <Icon size={20}>
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </Icon>
+              </Button>
+            </div>
+            <ul style={{ listStyle: 'none', paddingLeft: 0, marginTop: 8, marginBottom: 16 }}>
+              <li style={{ color: lengthValid ? 'green' : '#888' }}>
+                {lengthValid ? '✓ ' : '○ '}{t('register.criteria.length', { min: 8 })}
+              </li>
+              <li style={{ color: uppercaseValid ? 'green' : '#888' }}>
+                {uppercaseValid ? '✓ ' : '○ '}{t('register.criteria.uppercase')}
+              </li>
+              <li style={{ color: lowercaseValid ? 'green' : '#888' }}>
+                {lowercaseValid ? '✓ ' : '○ '}{t('register.criteria.lowercase')}
+              </li>
+              <li style={{ color: numberValid ? 'green' : '#888' }}>
+                {numberValid ? '✓ ' : '○ '}{t('register.criteria.number')}
+              </li>
+              <li style={{ color: specialValid ? 'green' : '#888' }}>
+                {specialValid ? '✓ ' : '○ '}{t('register.criteria.special')}
+              </li>
+            </ul>
           </FormGroup>
-          <Button type="submit" style={{ width: '100%' }} disabled={isLoading}>
-            {isLoading ? t('register.nextLoading') || 'Loading...' : (t('register.nextButton') || 'Next')}
+          <Button
+            type="submit"
+            style={{ width: '100%' }}
+            disabled={isLoading || !passwordValid}
+          >
+            {isLoading
+              ? t('register.nextLoading') || 'Loading...'
+              : t('register.nextButton') || 'Next'}
           </Button>
           <Text variant="body" style={{ textAlign: 'center', marginTop: '1rem' }}>
             {t('register.haveAccount') || 'Already have an account?'} <Link to="/login">{t('register.signIn') || 'Sign in'}</Link>

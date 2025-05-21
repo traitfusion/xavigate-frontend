@@ -13,8 +13,8 @@ import { getTimestamp, getOrCreateUserUUID } from './utils';
 import { fetchUserProfile } from '@/api/fetchUserProfile';
 import { useToast } from '@/components/toaster/useToast';
 
-// Base URL for chat service API
-const BASE_URL = 'http://chat.xavigate.com:8080/api';
+// Base URL for chat service API (uses relative path to leverage proxy)
+const BASE_URL = '/api';
 
 // Remove unused interface to fix the warning
 export interface RagChatViewProps {}

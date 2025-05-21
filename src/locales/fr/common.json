@@ -136,6 +136,16 @@
     "title": "S'inscrire",
     "emailLabel": "Adresse e-mail",
     "passwordLabel": "Mot de passe",
+    "viewPassword": "Afficher",
+    "hidePassword": "Masquer",
+    "passwordRequirements": "Le mot de passe doit comporter au moins 8 caractères et inclure une majuscule, une minuscule, un chiffre et un caractère spécial.",
+    "criteria": {
+      "length": "Au moins {{min}} caractères",
+      "uppercase": "Au moins une majuscule (A-Z)",
+      "lowercase": "Au moins une minuscule (a-z)",
+      "number": "Au moins un chiffre (0-9)",
+      "special": "Au moins un caractère spécial (ex. !@#$%^&*)"
+    },
     "nextButton": "Suivant",
     "nextLoading": "Inscription...",
     "haveAccount": "Vous avez déjà un compte ?",

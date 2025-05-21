@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { COLORS } from '@/design-system/theme/tokens';
 import { Card, Text } from '@/design-system/components';
 import {
@@ -82,6 +83,7 @@ const toChartData = (
   }));
 
 const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores }) => {
+  const { t } = useTranslation();
   const miData = toChartData(MULTIPLE_INTELLIGENCES, MI_KEY_MAP, traitScores);
   const mnData = toChartData(MULTIPLE_NATURES, MN_KEY_MAP, traitScores);
 
@@ -98,18 +100,38 @@ const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores }) => {
 
       {/* Multiple Intelligences Chart */}
       <Text variant="h2" style={{ marginTop: '16px', marginBottom: '1rem' }}>
-        Your Multiple Intelligences
+        {t('profileSection.multipleIntelligences')}
       </Text>
       <Card padding="lg" style={{ marginBottom: '2rem' }}>
         <ResponsiveContainer width="100%" height={miData.length * 40}>
           <BarChart
             data={miData}
             layout="vertical"
-            margin={{ top: 10, right: 30, bottom: 10, left: 120 }}
+            margin={{ top: 10, right: 30, bottom: 10, left: 16 }}
           >
             <XAxis type="number" domain={[0, 10]} />
-            <YAxis type="category" dataKey="name" tick={{ style: { whiteSpace: 'nowrap' } }} />
-            <Tooltip />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              tick={{ style: { whiteSpace: 'nowrap', overflow: 'visible' } }}
+              tickFormatter={(value) =>
+                t(
+                  `multipleIntelligences.${MI_KEY_MAP[
+                    value as unknown as string
+                  ]}` as const
+                )
+              }
+            />
+            <Tooltip
+              labelFormatter={(label) =>
+                t(
+                  `multipleIntelligences.${MI_KEY_MAP[
+                    label as unknown as string
+                  ]}` as const
+                )
+              }
+            />
             <Bar dataKey="score" fill={COLORS.primary.DEFAULT}>
               <LabelList dataKey="score" position="right" />
             </Bar>
@@ -118,7 +140,7 @@ const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores }) => {
       </Card>
       {/* Multiple Natures Chart */}
       <Text variant="h2" style={{ marginBottom: '1rem' }}>
-        Your Multiple Natures
+        {t('profileSection.multipleNatures')}
       </Text>
       <Card padding="lg">
         <ResponsiveContainer
@@ -128,11 +150,31 @@ const MNProfileView: React.FC<MNProfileViewProps> = ({ traitScores }) => {
           <BarChart
             data={mnData}
             layout="vertical"
-            margin={{ top: 10, right: 30, bottom: 10, left: 120 }}
+            margin={{ top: 10, right: 30, bottom: 10, left: 16 }}
           >
             <XAxis type="number" domain={[0, 10]} />
-            <YAxis type="category" dataKey="name" tick={{ style: { whiteSpace: 'nowrap' } }} />
-            <Tooltip />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              tick={{ style: { whiteSpace: 'nowrap', overflow: 'visible' } }}
+              tickFormatter={(value) =>
+                t(
+                  `multipleNatures.${MN_KEY_MAP[
+                    value as unknown as string
+                  ]}` as const
+                )
+              }
+            />
+            <Tooltip
+              labelFormatter={(label) =>
+                t(
+                  `multipleNatures.${MN_KEY_MAP[
+                    label as unknown as string
+                  ]}` as const
+                )
+              }
+            />
             <Bar dataKey="score" fill={COLORS.purple.DEFAULT}>
               <LabelList dataKey="score" position="right" />
             </Bar>
