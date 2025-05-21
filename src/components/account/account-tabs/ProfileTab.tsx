@@ -4,11 +4,11 @@ import { User } from 'lucide-react';
 import { fetchUserProfile } from '@/api/fetchUserProfile';
 import { useAuth } from '@/context/AuthContext';
 
-const BASE_URL = 
-  import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_BACKEND_URL || 
-  process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_BACKEND_URL || 
+// Base API path
+const BASE_URL =
+  import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_BACKEND_URL ||
+  process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_BACKEND_URL ||
   '/api';
-const TOKEN = 'foo';
 
 type ProfileTabProps = {
   user: {
@@ -34,7 +34,7 @@ export default function ProfileTab({ user }: ProfileTabProps) {
   useEffect(() => {
     if (!user?.uuid) return;
     
-    fetchUserProfile(user.uuid, idToken as any)
+    fetchUserProfile(user.uuid, idToken as string)
       .then((data: any) => {
         // Map various possible keys from backend
         setFirstName(
@@ -58,11 +58,11 @@ export default function ProfileTab({ user }: ProfileTabProps) {
     setStatus('saving');
     setMessage('');
     try {
-      const res = await fetch(`${BASE_URL}/profile/${user.uuid}`, {
+      const res = await fetch(`${BASE_URL}/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TOKEN}`,
+          Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ firstName, lastName, username, email }),
       });

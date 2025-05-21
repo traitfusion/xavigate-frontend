@@ -10,7 +10,7 @@ import ChatInput from './ChatInput';
 import AnimationStyles from './AnimationStyles';
 import { Message } from './types';
 import { getTimestamp, getOrCreateUserUUID } from './utils';
-import { fetchUserProfile } from '@/api/fetchUserProfile';
+import { fetchUserProfile, MnTestResult } from '@/api/fetchUserProfile';
 import { useToast } from '@/components/toaster/useToast';
 
 // Base URL for chat service API (uses relative path to leverage proxy)
@@ -24,8 +24,8 @@ export default function RagChatView(props: RagChatViewProps) {
   const { user, idToken } = useAuth();
   const { t } = useTranslation();
   const { showToast } = useToast();
-  // Profile and test status
-  const [profile, setProfile] = useState<{ traitScores: Record<string, any> }>({ traitScores: {} });
+  // User profile (MN Test result) data
+  const [profile, setProfile] = useState<MnTestResult | null>(null);
   const [profileLoading, setProfileLoading] = useState<boolean>(true);
 
   // Load user profile to check if MN test has been taken
@@ -33,14 +33,18 @@ export default function RagChatView(props: RagChatViewProps) {
     if (!user?.uuid) return;
     (async () => {
       setProfileLoading(true);
-      const prof = await fetchUserProfile(user.uuid, idToken as any);
-      setProfile(prof);
+      try {
+        const prof = await fetchUserProfile(user.uuid, idToken as any);
+        setProfile(prof);
+      } catch (err) {
+        // On error, fall back to empty traitScores
+        console.warn('Failed to fetch MNTestResult, using defaults:', err);
+        setProfile({ traitScores: {} });
+      }
       setProfileLoading(false);
     })();
   }, [user?.uuid, idToken]);
 
-  // Determine if the user has taken the MN test based on profile data
-  const testTaken = !profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0;
 
   const [uuid, setUUID] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -186,15 +190,9 @@ export default function RagChatView(props: RagChatViewProps) {
       return;
     }
     console.log('Using idToken:', idToken);
-    // Build chat prompt with user's MN scores if available
-    const testTaken = !profileLoading && profile.traitScores && Object.keys(profile.traitScores).length > 0;
-    let chatPrompt = trimmed;
-    if (testTaken) {
-      const scoreSummary = Object.entries(profile.traitScores)
-        .map(([t, s]) => `${t}: ${s}`)
-        .join(', ');
-      const instruction = 'Based on my Multiple Natures scores below, answer in 2–3 bullet points:';
-      chatPrompt = `${instruction}\n[${scoreSummary}]\n\n${trimmed}`;
+    if (!profile) {
+      console.error('Profile not loaded');
+      return;
     }
     // Append user message to chat
     const userMessage: Message = {
@@ -207,21 +205,13 @@ export default function RagChatView(props: RagChatViewProps) {
     setIsTyping(true);
     try {
       // Prepare single-message ChatRequest payload per swagger
-      const name = user.name || null;
-      // Flatten and prune traitScores to numeric values
-      const flatScores = Object.fromEntries(
-        Object.entries(profile.traitScores).filter(([_, v]) => typeof v === 'number')
-      );
-      // Limit to top 8 traits
-      const topTraits = Object.entries(flatScores)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8);
-      const limitedScores = Object.fromEntries(topTraits);
       const payload = {
         userId: uid,
-        username: email,
-        fullName: name,
-        traitScores: limitedScores,
+        // AuthContext user.email exists; derive username from it:
+        username: user.email?.split('@')[0] || uid,
+        fullName: user.email || uid,
+        // Pass traitScores separately if needed:
+        traitScores: profile?.traitScores,
         sessionId: uid,
         message: trimmed,
       };

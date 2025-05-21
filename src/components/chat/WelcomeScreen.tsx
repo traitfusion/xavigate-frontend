@@ -9,8 +9,7 @@ interface WelcomeScreenProps {
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSuggestionClick }) => {
   const { t } = useTranslation();
   // Load suggestions from translations
-  const suggestions: Array<{ title: string; question: string; context: string }> =
-    t('chat.suggestions', { returnObjects: true });
+  const suggestions = t('chat.suggestions', { returnObjects: true }) as { title: string; question: string; context: string }[];
 
   return (
     <div
