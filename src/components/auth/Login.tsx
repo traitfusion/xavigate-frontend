@@ -16,8 +16,26 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     try {
-      // Authenticate the user
-      await Auth.signIn({ username: email, password });
+      // 1) Clear any stale authenticated session
+      try {
+        await Auth.currentAuthenticatedUser();
+        await Auth.signOut();
+      } catch {
+        // no existing user session to clear
+      }
+      // 2) Attempt sign-in (retry on already authenticated)
+      try {
+        await Auth.signIn({ username: email, password });
+      } catch (signInErr: any) {
+        if (signInErr.name === 'UserAlreadyAuthenticatedException' ||
+            signInErr.code === 'UserAlreadyAuthenticatedException') {
+          // Clear stale session and retry once
+          await Auth.signOut();
+          await Auth.signIn({ username: email, password });
+        } else {
+          throw signInErr;
+        }
+      }
       // Retrieve current session tokens
       const session: any = await Auth.fetchAuthSession();
       const tokens = session.tokens || {};

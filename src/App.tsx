@@ -150,9 +150,8 @@ function AppContent() {
   const [traitScores, setTraitScores] = useState<Record<string, number>>({});
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
   const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
+  const [forceRetake, setForceRetake] = useState(false);
 
-  // Backend base URL (proxied prefix) from env
-  const BACKEND_URL = import.meta.env?.VITE_BACKEND_URL || '/api';
   // Auth token from environment or fallback
   const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
 
@@ -168,12 +167,13 @@ function AppContent() {
 
     const token = idToken || AUTH_TOKEN;
     try {
+      // FIXED: Use relative URL to utilize Vite proxy
+      const url = `/api/mntest/result?userId=${encodeURIComponent(uid)}`;
       const response = await fetch(
-        `/api/mntest/result?userId=${uid}`,
+        url,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
           }
         }
       );
@@ -233,8 +233,8 @@ function AppContent() {
   useEffect(() => {
     console.log('=== APP STATE ===');
     console.log('User UUID:', user?.uuid);
-    console.log('Backend URL:', BACKEND_URL);
-    console.log('Trait Scores Count:', Object.keys(traitScores).length);
+    console.log('Backend URL:', '/api (proxied to chat.xavigate.com:8080)');
+    console.log('Trait Scores Count:', traitScores ? Object.keys(traitScores).length : 0);
     console.log('Data Source:', dataSource);
     console.log('Connection Status:', connectionStatus.status);
     console.log('=================');
@@ -294,6 +294,7 @@ function AppContent() {
                 variant="primary"
                 onClick={() => {
                   setConnectionStatus({ status: 'idle' });
+                  setDataSource(null);
                   setTraitScores({});
                 }}
                 style={{ marginTop: '1rem' }}
@@ -303,7 +304,7 @@ function AppContent() {
             </div>
           );
         }
-        if (Object.keys(traitScores).length > 0) {
+        if (traitScores && Object.keys(traitScores).length > 0) {
           return (
             <div style={{ padding: 0, margin: 0 }}>
               <div style={{
@@ -317,6 +318,9 @@ function AppContent() {
                   variant="primary"
                   onClick={() => {
                     setTraitScores({});
+                    setConnectionStatus({ status: 'idle' });
+                    setDataSource(null);
+                    setForceRetake(true);
                     localStorage.removeItem(`mntest_scores_${user?.uuid}`);
                   }}
                 >
@@ -329,9 +333,11 @@ function AppContent() {
         }
         return (
           <MNTESTView
+            forceRetake={forceRetake}
             onComplete={(scores) => {
               setTraitScores(scores);
               setDataSource('primary');
+              setForceRetake(false);
               setConnectionStatus({ status: 'success', message: 'Test complete' });
             }}
           />

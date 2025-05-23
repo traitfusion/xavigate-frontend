@@ -1,43 +1,51 @@
-// In fetchUserProfile.ts
-// fetchUserProfile.ts
+// src/api/fetchUserProfile.ts
 
-
-// Fetches the user profile data from the backend
-// Fetches MNTEST results (traitScores) from the backend
-// MnTestResult represents the shape of data returned by fetchUserProfile
 export interface MnTestResult {
-  // Optional identifiers for default responses
   userId?: string;
   sessionId?: string;
   message?: string;
   traitScores: Record<string, any>;
 }
+
+// Log and read your Vite env var (fallback to '/api')
+console.log('import.meta.env =', import.meta.env);
+
 export async function fetchUserProfile(
   userId: string,
   token: string
 ): Promise<MnTestResult> {
-  if (!userId) {
-    throw new Error('fetchUserProfile: userId is undefined');
-  }
+  if (!userId) throw new Error('fetchUserProfile: userId is undefined');
+
+  // FIXED: Use relative URL to utilize Vite proxy
   const url = `/api/mntest/result?userId=${encodeURIComponent(userId)}`;
   console.log('About to fetch MNTest at:', url);
+
   try {
     const resp = await fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
     console.log('MNTest service status:', resp.status);
+
     if (resp.status === 404) {
-      console.warn(`MNTest result not found for user ${userId}, returning empty scores`);
+      console.warn('No MNTest found → empty scores');
+      return { userId, sessionId: '', message: '', traitScores: {} };
+    }
+    if (resp.status === 500) {
+      console.error('MNTest 500 → fallback empty');
       return { userId, sessionId: '', message: '', traitScores: {} };
     }
     if (!resp.ok) {
-      throw new Error(`MNTest service returned ${resp.status}`);
+      const text = await resp.text().catch(() => resp.statusText);
+      throw new Error(`MNTest ${resp.status}: ${text}`);
     }
+
     const data: MnTestResult = await resp.json();
     return data;
   } catch (err) {
-    console.error('Error fetching MNTest result, returning defaults:', err);
+    console.error('fetchUserProfile error → defaults:', err);
     return { userId, sessionId: '', message: '', traitScores: {} };
   }
 }

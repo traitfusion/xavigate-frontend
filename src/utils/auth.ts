@@ -8,17 +8,20 @@ const { region: COGNITO_REGION, userPoolId: USER_POOL_ID, userPoolClientId: USER
 // Derive default domain prefix: region + pool suffix (lowercased)
 const [regionPrefix, poolSuffix] = USER_POOL_ID.split('_');
 const DEFAULT_DOMAIN_PREFIX = `${regionPrefix}${poolSuffix.toLowerCase()}`;
+// Read Vite env var or fallback to default Cognito domain
 const COGNITO_DOMAIN =
-  process.env.REACT_APP_COGNITO_DOMAIN ||
+  import.meta.env.VITE_COGNITO_DOMAIN ||
   `https://${DEFAULT_DOMAIN_PREFIX}.auth.${COGNITO_REGION}.amazoncognito.com`;
 
 // Cognito App Client ID
 // Cognito App Client ID from awsConfig or env var
+// Read Vite env var or fallback to AWS exports client ID
 const CLIENT_ID =
-  process.env.REACT_APP_COGNITO_CLIENT_ID ||
+  import.meta.env.VITE_COGNITO_CLIENT_ID ||
   USER_POOL_CLIENT_ID;
 
-const SCOPES = process.env.REACT_APP_COGNITO_SCOPES || 'openid email phone';
+// Read Vite env var or fallback to default scopes
+const SCOPES = import.meta.env.VITE_COGNITO_SCOPES || 'openid email phone';
 
 function getRedirectUri(): string {
   // Always use the PKCE callback route

@@ -4,6 +4,7 @@ import './index.css';
 // Inject application favicon dynamically
 import faviconUrl from './assets/Xavigate_Favicon.svg';
 import XavigateApp from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import reportWebVitals from './reportWebVitals';
 import { Amplify } from 'aws-amplify';
 import { awsConfig } from './aws.exports';
@@ -28,7 +29,9 @@ Amplify.configure(awsConfig);
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <XavigateApp />
+    <ErrorBoundary>
+      <XavigateApp />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
 
