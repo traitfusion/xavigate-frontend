@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     publicDir: 'public',
     build: {
       rollupOptions: {
-        input: './public/index.html',
+        input: './index.html',
       },
       outDir: 'dist',
       emptyOutDir: true,
