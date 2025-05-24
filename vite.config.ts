@@ -5,14 +5,18 @@ import { resolve } from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
 
-  console.log('✅ Loaded environment variables:', Object.keys(env));
-
   return {
+    base: '/',
+    publicDir: 'public',
+    build: {
+      rollupOptions: {
+        input: './public/index.html',
+      },
+      outDir: 'dist',
+      emptyOutDir: true,
+    },
     plugins: [
-      react({
-        // include .js/.jsx as well as .ts/.tsx for JSX parsing
-        include: ['src/**/*.{js,jsx,ts,tsx}'],
-      }),
+      react(),
     ],
     resolve: {
       alias: {
@@ -28,9 +32,9 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: 'http://chat.xavigate.com:8080',
           changeOrigin: true,
-          secure: false
+          secure: false,
         },
       },
-    }
+    },
   };
 });
