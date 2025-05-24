@@ -168,7 +168,7 @@ function AppContent() {
     const token = idToken || AUTH_TOKEN;
     try {
       // FIXED: Use relative URL to utilize Vite proxy
-      const url = `/api/mntest/result?userId=${encodeURIComponent(uid)}`;
+      const url = `${import.meta.env.VITE_BACKEND_URL}/mntest/result?userId=${encodeURIComponent(uid)}`;
       const response = await fetch(
         url,
         {
@@ -233,7 +233,7 @@ function AppContent() {
   useEffect(() => {
     console.log('=== APP STATE ===');
     console.log('User UUID:', user?.uuid);
-    console.log('Backend URL:', '/api (proxied to chat.xavigate.com:8080)');
+    console.log('Backend URL:', '/api (proxied to chat.xavigate.com)');
     console.log('Trait Scores Count:', traitScores ? Object.keys(traitScores).length : 0);
     console.log('Data Source:', dataSource);
     console.log('Connection Status:', connectionStatus.status);
@@ -266,7 +266,7 @@ function AppContent() {
         return (
           <AvatarComposer
             uuid={user?.uuid || 'unknown'}
-            backendUrl={import.meta.env?.VITE_BACKEND_URL?.replace(/\/api\/?$/, '') || 'http://localhost:8010'}
+            backendUrl={import.meta.env?.VITE_BACKEND_URL?.replace(/\/api\/?$/, '') }
             onSave={(profile) => console.log('✅ Avatar saved:', profile)}
           />
         );

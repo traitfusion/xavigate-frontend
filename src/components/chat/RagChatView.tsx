@@ -15,7 +15,7 @@ import { fetchUserProfile, MnTestResult } from '@/api/fetchUserProfile';
 import { useToast } from '@/components/toaster/useToast';
 
 // Base URL for chat service API (uses relative path to leverage proxy)
-const BASE_URL = '/api';
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 export interface RagChatViewProps {}
 

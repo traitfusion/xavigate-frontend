@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         '/api': {
-          target: 'http://chat.xavigate.com:8080',
+          target: 'http://chat.xavigate.com',
           changeOrigin: true,
           secure: false,
         },

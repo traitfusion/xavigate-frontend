@@ -17,7 +17,7 @@ export async function fetchUserProfile(
   if (!userId) throw new Error('fetchUserProfile: userId is undefined');
 
   // FIXED: Use relative URL to utilize Vite proxy
-  const url = `/api/mntest/result?userId=${encodeURIComponent(userId)}`;
+  const url = `${import.meta.env.VITE_BACKEND_URL}/mntest/result?userId=${encodeURIComponent(userId)}`;
   console.log('About to fetch MNTest at:', url);
 
   try {

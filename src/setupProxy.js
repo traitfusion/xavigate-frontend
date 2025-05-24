@@ -5,11 +5,11 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
  * to the actual backend server, avoiding CORS issues in development.
  *
  * The backend URL is read from REACT_APP_BACKEND_URL environment variable (must include '/api' suffix).
- * Fallback: 'http://chat.xavigate.com:8080/api'
+ * Fallback: 'http://chat.xavigate.com/api'
  */
 // Determine backend URLs from environment variables
 // REACT_APP_BACKEND_URL should include '/api' suffix (e.g., http://host:port/api)
-const rawBackend = process.env.REACT_APP_BACKEND_URL || 'http://chat.xavigate.com:8080/api';
+const rawBackend = process.env.REACT_APP_BACKEND_URL || 'http://chat.xavigate.com/api';
 // Strip trailing '/api' to proxy '/api' paths correctly
 const backendRoot = rawBackend.replace(/\/api\/?$/, '');
 

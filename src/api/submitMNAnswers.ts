@@ -6,9 +6,9 @@ export interface MNAnswerPayload {
 }
 
 export async function submitMNAnswers(payload: MNAnswerPayload): Promise<void> {
-  const API = '/api';
+  const API = `${import.meta.env.VITE_BACKEND_URL}`;
 
-  const res = await fetch(`${API}/mn/submit`, {
+  const res = await fetch(`${API}/mntest/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

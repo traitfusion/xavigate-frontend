@@ -20,8 +20,8 @@ export default function Onboarding() {
 
   // Step 3: render the MNTEST form only (no profile loading)
   if (step === 3) {
-    // Submission endpoint uses /api/mn/submit via proxy
-    const SUBMIT_URL = '/api/mn/submit';
+    // Submission endpoint uses /api/mntest/submit via proxy
+    const SUBMIT_URL = `${import.meta.env.VITE_BACKEND_URL}/mntest/submit`;
     const TOKEN = 'foo';
     const handleComplete = async (scores: Record<string, number>) => {
       if (uuid) {

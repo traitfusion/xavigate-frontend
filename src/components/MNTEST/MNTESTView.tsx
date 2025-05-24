@@ -36,7 +36,7 @@ const MNTESTView: React.FC<MNTESTViewProps> = ({ onComplete, forceRetake = false
       console.log("🖺 Token preview:", idToken.slice(0, 50));
 
       // FIXED: Use relative URL to utilize Vite proxy
-      const url = `/api/mntest/result?userId=${encodeURIComponent(uuid)}`;
+      const url = `${import.meta.env.VITE_BACKEND_URL}/mntest/result?userId=${encodeURIComponent(uuid)}`;
       const opts: RequestInit = {
         method: 'GET',
         headers: {

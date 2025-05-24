@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://chat.xavigate.com:8080",
+  "proxy": "http://chat.xavigate.com",
   "scripts": {
     "start": "vite",
     "dev": "vite",

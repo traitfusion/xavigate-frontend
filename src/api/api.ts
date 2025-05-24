@@ -2,14 +2,16 @@
 // Centralized API calls for backend interactions using relative paths and CRA proxy.
 
 // API URL prefix: default to '/api'
-const PREFIX = '/api';
+const PREFIX = import.meta.env.VITE_BACKEND_URL;
 
 // Handle both Vite and CRA environments
 const AUTH_TOKEN =
   (typeof import.meta !== 'undefined' &&
     import.meta.env &&
     import.meta.env.VITE_AUTH_TOKEN) ||
-  process.env.REACT_APP_AUTH_TOKEN ||
+    //load from .env file
+    
+  
   '';
 
 const EXTERNAL_ENDPOINTS = {
@@ -17,8 +19,7 @@ const EXTERNAL_ENDPOINTS = {
     (typeof import.meta !== 'undefined' &&
       import.meta.env &&
       import.meta.env.VITE_BACKEND_URL) ||
-    process.env.REACT_APP_BACKEND_URL ||
-    'http://chat.xavigate.com:8080/api',
+    'http://chat.xavigate.com/api',
 };
 
 export type SessionMemory = {
@@ -29,21 +30,6 @@ export interface TraitScores {
   [key: string]: number;
 }
 
-/**
- * Fetch the stored session memory for a given UUID.
- */
-export async function fetchSessionMemory(uuid: string): Promise<SessionMemory | null> {
-  const res = await fetch(`${PREFIX}/session-memory/${uuid}`, {
-    headers: {
-      Authorization: `Bearer ${AUTH_TOKEN}`,
-    },
-  });
-  if (!res.ok) {
-    console.error('fetchSessionMemory failed:', res.status, res.statusText);
-    return null;
-  }
-  return res.json();
-}
 
 /**
  * Fetch trait scores from MNTEST service.
@@ -52,7 +38,7 @@ export async function fetchSessionMemory(uuid: string): Promise<SessionMemory | 
 export async function fetchTraitScores(userId: string, idToken?: string): Promise<TraitScores | null> {
   const endpoints = [
     { url: `${PREFIX}/mntest/result`, name: 'Local API' },
-    { url: `${EXTERNAL_ENDPOINTS.mntest}/mntest/result`, name: 'External API' }
+    { url: `${import.meta.env.VITE_BACKEND_URL}/mntest/result`, name: 'External API' }
   ];
 
   let lastError = null;
