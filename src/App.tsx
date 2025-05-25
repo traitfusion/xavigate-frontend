@@ -30,6 +30,9 @@ import Onboarding from './components/onboarding/Onboarding';
 import { LanguageSelector } from './components/language';
 import { useTranslation } from 'react-i18next';
 
+// ADD THIS IMPORT FOR CONFIG PANEL
+import ConfigPanel from './components/admin/ConfigPanel';
+
 // Connection status component
 interface ConnectionStatusProps {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -448,6 +451,8 @@ function AppContent() {
             <Route path="/privacy" element={<ContentLayout><PrivacyPolicy /></ContentLayout>} />
             <Route path="/terms" element={<ContentLayout><Terms /></ContentLayout>} />
             <Route path="/help" element={<ContentLayout><HelpCenter /></ContentLayout>} />
+            {/* ADD CONFIG PANEL ROUTE HERE */}
+            <Route path="/admin/config" element={<ConfigPanel />} />
             <Route path="*" element={renderView()} />
           </Routes>
         </div>
