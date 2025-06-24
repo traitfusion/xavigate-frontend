@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Server-side deployment script for Xavigate frontend
-# Run this script on the server after pulling changes
+# Run this script from the xavigate-frontend directory on the server
 
 set -e  # Exit on error
 
 echo "🚀 Starting Xavigate frontend deployment..."
 
-# Navigate to frontend directory
-cd /home/ubuntu/xavigate-dev/xavigate-frontend
+# Ensure we're in the right directory
+# Script assumes you're already in /home/ubuntu/xavigate-frontend
 
 # Pull latest changes (optional - remove if you've already pulled)
 echo "📥 Pulling latest changes..."
