@@ -254,8 +254,17 @@ function AppContent() {
   // Not logged in
   if (!user) return <Navigate to="/login" replace />;
 
-  // Handle onboarding
-  const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true';
+  // Handle onboarding - if user has trait scores, they've completed onboarding
+  const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true' || 
+                              (traitScores && Object.keys(traitScores).length > 0);
+  
+  // Set onboarding completed if user has scores
+  useEffect(() => {
+    if (traitScores && Object.keys(traitScores).length > 0) {
+      localStorage.setItem('onboardingCompleted', 'true');
+    }
+  }, [traitScores]);
+  
   if (!onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
