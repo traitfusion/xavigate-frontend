@@ -15,6 +15,7 @@ import { ToastProvider } from './components/toaster/ToastProvider';
 import MNTESTView from './components/MNTEST/MNTESTView';
 import MNProfileView from './components/MNTEST/MNProfileView';
 import { Button } from '@/design-system/components';
+import { fetchUserProfile } from './api/fetchUserProfile';
 
 import AboutXavigate from './content/AboutXavigate';
 import PrivacyPolicy from './content/PrivacyPolicy';
@@ -155,6 +156,8 @@ function AppContent() {
   const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
   const [forceRetake, setForceRetake] = useState(false);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
+  
+  console.log('🚀 AppContent render - traitScores:', traitScores);
 
   // Auth token from environment or fallback
   const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
@@ -174,74 +177,28 @@ function AppContent() {
 
     const token = idToken || AUTH_TOKEN;
     try {
-      // FIXED: Use relative URL to utilize Vite proxy
-      const url = `${import.meta.env.VITE_BACKEND_URL}/mntest/result?userId=${encodeURIComponent(uid)}`;
-      const response = await fetch(
-        url,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        }
-      );
-
-      if (response.status === 404) {
-        setConnectionStatus({
-          status: 'error',
-          message: 'No saved scores found.',
-          onRetry: fetchTraitScores
-        });
-        setInitialFetchComplete(true);
-        return;
-      }
-
-      if (!response.ok) {
-        setConnectionStatus({
-          status: 'error',
-          message: 'Error fetching scores.',
-          onRetry: fetchTraitScores
-        });
-        setInitialFetchComplete(true);
-        return;
-      }
-
-      const data = await response.json();
-      console.log('=== MN TEST RESPONSE DEBUG ===');
-      console.log('Raw response data:', data);
-      console.log('Type of data:', typeof data);
-      console.log('Has traitScores property:', 'traitScores' in data);
-      console.log('data.traitScores:', data?.traitScores);
-      console.log('================================');
+      console.log('📡 Calling fetchUserProfile...');
+      const result = await fetchUserProfile(uid, token);
+      console.log('📡 fetchUserProfile result:', result);
       
-      if (data?.traitScores) {
-        console.log('Setting trait scores:', data.traitScores);
-        console.log('Scores object keys:', Object.keys(data.traitScores));
-        console.log('Scores object length:', Object.keys(data.traitScores).length);
-        
-        // Direct state update with callback to verify
-        const newScores = data.traitScores;
-        console.log('About to call setTraitScores with:', newScores);
-        setTraitScores(newScores);
+      if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
+        console.log('✅ Found trait scores:', result.traitScores);
+        setTraitScores(result.traitScores);
         setDataSource('primary');
         setConnectionStatus({
           status: 'success',
           message: 'Scores loaded'
         });
-        console.log('State updates queued - scores should be available on next render');
-        
-        // Force a re-render check
-        setTimeout(() => {
-          console.log('⏰ DELAYED CHECK - traitScores should be set by now');
-        }, 100);
       } else {
-        console.log('No traitScores found in response');
+        console.log('❌ No trait scores found in result');
         setConnectionStatus({
           status: 'error',
           message: 'No saved scores found.',
           onRetry: fetchTraitScores
         });
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ Error fetching scores:', error);
       setConnectionStatus({
         status: 'error',
         message: 'Error fetching scores.',
@@ -249,16 +206,24 @@ function AppContent() {
       });
     } finally {
       setInitialFetchComplete(true);
+      console.log('🏁 fetchTraitScores complete, initialFetchComplete set to true');
     }
   };
   // Load trait scores on initialization
   useEffect(() => {
-    if (user?.uuid && !initialFetchComplete) {
-      console.log('📍 Triggering fetchTraitScores from useEffect');
-      fetchTraitScores();
+    if (user?.uuid) {
+      console.log('📍 User UUID available, checking initialFetchComplete:', initialFetchComplete);
+      if (!initialFetchComplete) {
+        console.log('📍 Triggering fetchTraitScores from useEffect');
+        fetchTraitScores();
+      }
     }
+    
+    return () => {
+      console.log('⚠️ AppContent component unmounting!');
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uuid]);
+  }, [user?.uuid, initialFetchComplete]);
 
   // Debug logging
   useEffect(() => {
