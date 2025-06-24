@@ -134,6 +134,13 @@ function AppContent() {
     handleResize();
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  
+  // Set onboarding completed if user has scores
+  useEffect(() => {
+    if (traitScores && Object.keys(traitScores).length > 0) {
+      localStorage.setItem('onboardingCompleted', 'true');
+    }
+  }, [traitScores]);
 
   const renderView = () => {
     switch (activeView) {
@@ -257,13 +264,6 @@ function AppContent() {
   // Handle onboarding - if user has trait scores, they've completed onboarding
   const onboardingCompleted = localStorage.getItem('onboardingCompleted') === 'true' || 
                               (traitScores && Object.keys(traitScores).length > 0);
-  
-  // Set onboarding completed if user has scores
-  useEffect(() => {
-    if (traitScores && Object.keys(traitScores).length > 0) {
-      localStorage.setItem('onboardingCompleted', 'true');
-    }
-  }, [traitScores]);
   
   if (!onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
