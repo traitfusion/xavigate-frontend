@@ -150,16 +150,22 @@ function AppContent() {
       case 'account':
         return <AccountView />;
       case 'mntest':
-        console.log('🎮 MNTEST VIEW - ready:', ready, 'scoresLoading:', scoresLoading, 'traitScores:', traitScores);
+        console.log('🎮 MNTEST VIEW RENDER:');
+        console.log('  - ready:', ready);
+        console.log('  - scoresLoading:', scoresLoading); 
+        console.log('  - traitScores:', traitScores);
+        console.log('  - forceRetake:', forceRetake);
+        console.log('  - user:', user);
         
-        // Show loading state while checking for scores OR if auth isn't ready
+        // Always wait for loading to complete
         if (!ready || scoresLoading) {
+          console.log('🎮 Showing loading state');
           return (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <div style={{ marginBottom: '1rem' }}>
                 <span style={{ fontSize: '1.5rem' }}>⏳</span>
               </div>
-              <p>Checking for saved MN Test scores...</p>
+              <p>Loading...</p>
             </div>
           );
         }
