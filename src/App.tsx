@@ -150,7 +150,7 @@ function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeView, setActiveView] = useState(() => localStorage.getItem('activeView') || 'chat');
-  const [traitScores, setTraitScores] = useState<Record<string, number>>({});
+  const [traitScores, setTraitScores] = useState<Record<string, number> | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
   const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
   const [forceRetake, setForceRetake] = useState(false);
@@ -164,6 +164,9 @@ function AppContent() {
     const uid = user?.uuid;
     if (!uid) return;
 
+    console.log('🔄 fetchTraitScores called for user:', uid);
+    console.log('🔄 initialFetchComplete:', initialFetchComplete);
+    
     setConnectionStatus({
       status: 'loading',
       message: 'Checking for saved MN Test scores...'
@@ -214,13 +217,22 @@ function AppContent() {
         console.log('Setting trait scores:', data.traitScores);
         console.log('Scores object keys:', Object.keys(data.traitScores));
         console.log('Scores object length:', Object.keys(data.traitScores).length);
-        setTraitScores(data.traitScores);
+        
+        // Direct state update with callback to verify
+        const newScores = data.traitScores;
+        console.log('About to call setTraitScores with:', newScores);
+        setTraitScores(newScores);
         setDataSource('primary');
         setConnectionStatus({
           status: 'success',
           message: 'Scores loaded'
         });
         console.log('State updates queued - scores should be available on next render');
+        
+        // Force a re-render check
+        setTimeout(() => {
+          console.log('⏰ DELAYED CHECK - traitScores should be set by now');
+        }, 100);
       } else {
         console.log('No traitScores found in response');
         setConnectionStatus({
@@ -242,10 +254,11 @@ function AppContent() {
   // Load trait scores on initialization
   useEffect(() => {
     if (user?.uuid && !initialFetchComplete) {
+      console.log('📍 Triggering fetchTraitScores from useEffect');
       fetchTraitScores();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uuid, idToken]);
+  }, [user?.uuid]);
 
   // Debug logging
   useEffect(() => {
@@ -264,7 +277,7 @@ function AppContent() {
 
   // Specific debug for trait scores changes
   useEffect(() => {
-    if (Object.keys(traitScores).length > 0) {
+    if (traitScores && Object.keys(traitScores).length > 0) {
       console.log('🎯 TRAIT SCORES UPDATED:', traitScores);
       console.log('🎯 Number of traits:', Object.keys(traitScores).length);
     }
@@ -326,7 +339,7 @@ function AppContent() {
                 <Button
                   variant="primary"
                   onClick={() => {
-                    setTraitScores({});
+                    setTraitScores(null);
                     setConnectionStatus({ status: 'idle' });
                     setDataSource(null);
                     setForceRetake(true);
