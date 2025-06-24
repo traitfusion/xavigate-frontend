@@ -8,7 +8,7 @@ set -e  # Exit on error
 echo "🚀 Starting Xavigate frontend deployment..."
 
 # Ensure we're in the right directory
-# Script assumes you're already in /home/ubuntu/xavigate-frontend
+# Script assumes you're already in /home/ec2-user/xavigate-frontend
 
 # Pull latest changes (optional - remove if you've already pulled)
 echo "📥 Pulling latest changes..."
