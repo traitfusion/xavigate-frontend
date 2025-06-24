@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate, Outlet } from 'react-router-dom';
 
 import './i18n';
@@ -15,7 +15,6 @@ import { ToastProvider } from './components/toaster/ToastProvider';
 import MNTESTView from './components/MNTEST/MNTESTView';
 import MNProfileView from './components/MNTEST/MNProfileView';
 import { Button } from '@/design-system/components';
-import { fetchUserProfile } from './api/fetchUserProfile';
 
 import AboutXavigate from './content/AboutXavigate';
 import PrivacyPolicy from './content/PrivacyPolicy';
@@ -34,61 +33,6 @@ import { useTranslation } from 'react-i18next';
 // ADD THIS IMPORT FOR CONFIG PANEL
 import ConfigPanel from './components/admin/ConfigPanel';
 
-// Connection status component
-interface ConnectionStatusProps {
-  status: 'idle' | 'loading' | 'success' | 'error';
-  message?: string;
-  onRetry?: () => void;
-}
-
-const ConnectionStatus: React.FC<ConnectionStatusProps> = ({ status, message, onRetry }) => {
-  if (status === 'idle') return null;
-  
-  const statusStyles = {
-    loading: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-800',
-    },
-    success: {
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      text: 'text-green-800',
-    },
-    error: {
-      bg: 'bg-orange-50',
-      border: 'border-orange-200',
-      text: 'text-orange-800',
-    },
-  };
-  
-  const style = statusStyles[status] || statusStyles.loading;
-  
-  return (
-    <div className={`${style.bg} ${style.border} border rounded-lg p-3 mb-4 flex items-center justify-between`}>
-      <div className={`${style.text} text-sm`}>
-        {status === 'loading' && (
-          <span className="inline-block w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-        )}
-        {status === 'success' && '✅ '}
-        {status === 'error' && '⚠️ '}
-        {message || (
-          status === 'loading' ? 'Loading...' : 
-          status === 'success' ? 'Connected successfully' : 
-          'Connection issue detected'
-        )}
-      </div>
-      {status === 'error' && onRetry && (
-        <button 
-          onClick={onRetry}
-          className="text-sm px-3 py-1 rounded border border-orange-300 hover:bg-orange-100 transition-colors"
-        >
-          Retry
-        </button>
-      )}
-    </div>
-  );
-};
 
 function ContentLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -144,118 +88,27 @@ function HelpCenter() {
 }
 
 function AppContent() {
-  const { user, ready, idToken, updateTraitScores } = useAuth();
+  const { user, ready, idToken, updateTraitScores, scoresLoading } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeView, setActiveView] = useState(() => localStorage.getItem('activeView') || 'chat');
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
-  const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
   const [forceRetake, setForceRetake] = useState(false);
-  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   
   const traitScores = user?.traitScores || null;
-  console.log('🚀 AppContent render - traitScores from user:', traitScores);
-
-  // Auth token from environment or fallback
-  const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
-  
-  // Check backend for saved MN Test scores
-  const fetchTraitScores = async () => {
-    const uid = user?.uuid;
-    if (!uid) return;
-
-    console.log('🔄 fetchTraitScores called for user:', uid);
-    console.log('🔄 initialFetchComplete:', initialFetchComplete);
-    
-    setConnectionStatus({
-      status: 'loading',
-      message: 'Checking for saved MN Test scores...'
-    });
-
-    const token = idToken || AUTH_TOKEN;
-    try {
-      console.log('📡 Calling fetchUserProfile...');
-      const result = await fetchUserProfile(uid, token);
-      console.log('📡 fetchUserProfile result:', result);
-      
-      if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
-        console.log('✅ Found trait scores:', result.traitScores);
-        updateTraitScores(result.traitScores);
-        setDataSource('primary');
-        setConnectionStatus({
-          status: 'success',
-          message: 'Scores loaded'
-        });
-      } else {
-        console.log('❌ No trait scores found in result');
-        setConnectionStatus({
-          status: 'error',
-          message: 'No saved scores found.',
-          onRetry: fetchTraitScores
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error fetching scores:', error);
-      setConnectionStatus({
-        status: 'error',
-        message: 'Error fetching scores.',
-        onRetry: fetchTraitScores
-      });
-    } finally {
-      setInitialFetchComplete(true);
-      console.log('🏁 fetchTraitScores complete, initialFetchComplete set to true');
-    }
-  };
-  // Check if we need to fetch trait scores
-  useEffect(() => {
-    console.log('🔵 useEffect running, user?.uuid:', user?.uuid, 'traitScores:', user?.traitScores);
-    
-    // Trait scores are now loaded in AuthContext, so we just need to track the state
-    if (user?.traitScores && Object.keys(user.traitScores).length > 0) {
-      console.log('✅ User has trait scores from AuthContext');
-      setConnectionStatus({
-        status: 'success',
-        message: 'Scores loaded'
-      });
-      setDataSource('primary');
-      setInitialFetchComplete(true);
-    } else if (user?.uuid && !initialFetchComplete) {
-      // If we have a user but no scores, they might not have taken the test
-      console.log('📍 User exists but no trait scores found');
-      setConnectionStatus({
-        status: 'error',
-        message: 'No saved scores found.',
-        onRetry: fetchTraitScores
-      });
-      setInitialFetchComplete(true);
-    }
-  }, [user]);
+  console.log('🚀 AppContent render - traitScores:', traitScores, 'scoresLoading:', scoresLoading);
 
   // Debug logging
   useEffect(() => {
     console.log('=== APP STATE ===');
     console.log('User UUID:', user?.uuid);
-    console.log('Backend URL:', '/api (proxied to chat.xavigate.com)');
-    console.log('Trait Scores Count:', traitScores ? Object.keys(traitScores).length : 0);
-    console.log('Trait Scores Object:', traitScores);
-    console.log('Data Source:', dataSource);
-    console.log('Connection Status:', connectionStatus.status);
-    console.log('Initial Fetch Complete:', initialFetchComplete);
+    console.log('Trait Scores:', traitScores);
+    console.log('Scores Loading:', scoresLoading);
     console.log('Active View:', activeView);
     console.log('=================');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uuid, traitScores, dataSource, connectionStatus, initialFetchComplete, activeView]);
-
-  // Specific debug for trait scores changes
-  useEffect(() => {
-    if (traitScores && Object.keys(traitScores).length > 0) {
-      console.log('🎯 TRAIT SCORES UPDATED:', traitScores);
-      console.log('🎯 Number of traits:', Object.keys(traitScores).length);
-    }
-  }, [traitScores]);
+  }, [user, traitScores, scoresLoading, activeView]);
 
   const isContentPage = ['/about', '/privacy', '/terms', '/help'].includes(location.pathname);
 
@@ -289,17 +142,19 @@ function AppContent() {
       case 'account':
         return <AccountView />;
       case 'mntest':
-        // Don't render anything until initial fetch is complete
-        if (!initialFetchComplete || connectionStatus.status === 'loading') {
+        // Show loading state while checking for scores
+        if (scoresLoading) {
           return (
-            <ConnectionStatus
-              status="loading"
-              message="Checking for saved MN Test scores..."
-            />
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>⏳</span>
+              </div>
+              <p>Checking for saved MN Test scores...</p>
+            </div>
           );
         }
         
-        // If we successfully loaded scores, show the profile
+        // If we have scores and not forcing retake, show profile
         if (traitScores && Object.keys(traitScores).length > 0 && !forceRetake) {
           return (
             <div style={{ padding: 0, margin: 0 }}>
@@ -314,8 +169,6 @@ function AppContent() {
                   variant="primary"
                   onClick={() => {
                     updateTraitScores({});
-                    setConnectionStatus({ status: 'idle' });
-                    setDataSource(null);
                     setForceRetake(true);
                     localStorage.removeItem(`mntest_scores_${user?.uuid}`);
                   }}
@@ -328,16 +181,14 @@ function AppContent() {
           );
         }
         
-        // Otherwise show the test form (either no scores or forceRetake)
+        // Otherwise show the test form
         return (
           <MNTESTView
             forceRetake={forceRetake}
             onComplete={(scores) => {
               console.log('MNTESTView onComplete called with scores:', scores);
               updateTraitScores(scores);
-              setDataSource('primary');
               setForceRetake(false);
-              setConnectionStatus({ status: 'success', message: 'Test complete' });
             }}
           />
         );

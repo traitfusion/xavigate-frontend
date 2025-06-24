@@ -31,6 +31,7 @@ interface AuthContextType {
   accessToken: string | null;
   refreshToken: string | null;
   ready: boolean;
+  scoresLoading: boolean;
   signIn: () => void;
   signOut: () => void;
   refresh: () => Promise<void>;
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [scoresLoading, setScoresLoading] = useState(false);
 
   useEffect(() => {
     fetchAuthSession()
@@ -84,15 +86,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newUser);
         
         // Fetch trait scores after user is set
+        setScoresLoading(true);
         fetchUserProfile(payload.sub, id_token)
           .then(result => {
             if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
               console.log('🎯 AuthContext: Loaded trait scores:', result.traitScores);
               setUser(prev => prev ? { ...prev, traitScores: result.traitScores } : null);
+            } else {
+              console.log('📝 AuthContext: No trait scores found for user');
             }
           })
           .catch(err => {
             console.log('AuthContext: Could not load trait scores:', err);
+          })
+          .finally(() => {
+            setScoresLoading(false);
           });
       })
       .catch((err: any) => {
@@ -153,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken,
         refreshToken,
         ready,
+        scoresLoading,
         signIn,
         signOut,
         refresh,
