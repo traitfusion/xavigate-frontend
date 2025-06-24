@@ -212,12 +212,15 @@ function AppContent() {
       
       if (data?.traitScores) {
         console.log('Setting trait scores:', data.traitScores);
+        console.log('Scores object keys:', Object.keys(data.traitScores));
+        console.log('Scores object length:', Object.keys(data.traitScores).length);
         setTraitScores(data.traitScores);
         setDataSource('primary');
         setConnectionStatus({
           status: 'success',
           message: 'Scores loaded'
         });
+        console.log('State updates queued - scores should be available on next render');
       } else {
         console.log('No traitScores found in response');
         setConnectionStatus({
@@ -237,10 +240,8 @@ function AppContent() {
     }
   };
   // Load trait scores on initialization
-
-  // Load trait scores on initialization
   useEffect(() => {
-    if (user?.uuid) {
+    if (user?.uuid && !initialFetchComplete) {
       fetchTraitScores();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,6 +261,14 @@ function AppContent() {
     console.log('=================');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uuid, traitScores, dataSource, connectionStatus, initialFetchComplete, activeView]);
+
+  // Specific debug for trait scores changes
+  useEffect(() => {
+    if (Object.keys(traitScores).length > 0) {
+      console.log('🎯 TRAIT SCORES UPDATED:', traitScores);
+      console.log('🎯 Number of traits:', Object.keys(traitScores).length);
+    }
+  }, [traitScores]);
 
   const isContentPage = ['/about', '/privacy', '/terms', '/help'].includes(location.pathname);
 
