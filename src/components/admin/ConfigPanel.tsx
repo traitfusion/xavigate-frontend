@@ -40,7 +40,7 @@ const ConfigPanel: React.FC = () => {
 
   // ===== CONFIGURATION SECTION =====
   
-  const BASE_URL = 'http://chat.xavigate.com:8080/api';
+  const BASE_URL = 'https://chat.xavigate.com:/api';
   
   const DEFAULT_SYSTEM_PROMPT = `Hi, I'm Xavigate, your AI assistant specializing in Multiple Natures theory and Alignment Dynamics. I help users understand their traits, improve alignment, and navigate personal development using the MN/AD framework.`;
 
@@ -51,7 +51,8 @@ const ConfigPanel: React.FC = () => {
   const getAuthToken = (): string | null => {
     return null;
   };
-  
+
+
   // ===== END CONFIGURATION SECTION =====
 
   useEffect(() => {

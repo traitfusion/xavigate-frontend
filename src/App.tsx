@@ -154,6 +154,7 @@ function AppContent() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
   const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
   const [forceRetake, setForceRetake] = useState(false);
+  const [initialFetchComplete, setInitialFetchComplete] = useState(false);
 
   // Auth token from environment or fallback
   const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
@@ -187,6 +188,7 @@ function AppContent() {
           message: 'No saved scores found.',
           onRetry: fetchTraitScores
         });
+        setInitialFetchComplete(true);
         return;
       }
 
@@ -196,6 +198,7 @@ function AppContent() {
           message: 'Error fetching scores.',
           onRetry: fetchTraitScores
         });
+        setInitialFetchComplete(true);
         return;
       }
 
@@ -229,6 +232,8 @@ function AppContent() {
         message: 'Error fetching scores.',
         onRetry: fetchTraitScores
       });
+    } finally {
+      setInitialFetchComplete(true);
     }
   };
   // Load trait scores on initialization
@@ -250,9 +255,11 @@ function AppContent() {
     console.log('Trait Scores Object:', traitScores);
     console.log('Data Source:', dataSource);
     console.log('Connection Status:', connectionStatus.status);
+    console.log('Initial Fetch Complete:', initialFetchComplete);
+    console.log('Active View:', activeView);
     console.log('=================');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uuid, traitScores, dataSource, connectionStatus]);
+  }, [user?.uuid, traitScores, dataSource, connectionStatus, initialFetchComplete, activeView]);
 
   const isContentPage = ['/about', '/privacy', '/terms', '/help'].includes(location.pathname);
 
@@ -286,8 +293,8 @@ function AppContent() {
       case 'account':
         return <AccountView />;
       case 'mntest':
-        // Don't render MNTESTView while we're still checking for scores
-        if (connectionStatus.status === 'loading') {
+        // Don't render anything until initial fetch is complete
+        if (!initialFetchComplete || connectionStatus.status === 'loading') {
           return (
             <ConnectionStatus
               status="loading"
