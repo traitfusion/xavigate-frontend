@@ -83,29 +83,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: payload.email,
           onboardingCompleted: true,
         };
-        setUser(newUser);
         
-        // Fetch trait scores after user is set
+        // Don't set user yet - fetch scores first
         setScoresLoading(true);
+        setReady(false); // Keep ready false until scores are loaded
+        
         fetchUserProfile(payload.sub, id_token)
           .then(result => {
             if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
               console.log('🎯 AuthContext: Loaded trait scores:', result.traitScores);
-              setUser(prev => {
-                console.log('🔄 Updating user state with scores, prev:', prev);
-                const updated = prev ? { ...prev, traitScores: result.traitScores } : null;
-                console.log('🔄 Updated user:', updated);
-                return updated;
-              });
+              // Set user with scores in one go
+              setUser({ ...newUser, traitScores: result.traitScores });
             } else {
               console.log('📝 AuthContext: No trait scores found for user');
+              setUser(newUser);
             }
           })
           .catch(err => {
             console.log('AuthContext: Could not load trait scores:', err);
+            setUser(newUser);
           })
           .finally(() => {
+            console.log('📌 Setting scoresLoading to false and ready to true');
             setScoresLoading(false);
+            setReady(true);
           });
       })
       .catch((err: any) => {
@@ -114,8 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIdToken(null);
         setAccessToken(null);
         setRefreshToken(null);
-      })
-      .finally(() => {
         setReady(true);
       });
   }, []);
