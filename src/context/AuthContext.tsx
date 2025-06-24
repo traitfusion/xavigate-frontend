@@ -9,6 +9,7 @@ import {
   fetchAuthSession,
   signOut as amplifySignOut,
 } from 'aws-amplify/auth';
+import { fetchUserProfile } from '../api/fetchUserProfile';
 
 type AvatarProfile = {
   avatar_id: string;
@@ -74,12 +75,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           payload.sub ||
           '';
 
-        setUser({
+        const newUser = {
           name: displayName,
           uuid: payload.sub,
           email: payload.email,
           onboardingCompleted: true,
-        });
+        };
+        setUser(newUser);
+        
+        // Fetch trait scores after user is set
+        fetchUserProfile(payload.sub, id_token)
+          .then(result => {
+            if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
+              console.log('🎯 AuthContext: Loaded trait scores:', result.traitScores);
+              setUser(prev => prev ? { ...prev, traitScores: result.traitScores } : null);
+            }
+          })
+          .catch(err => {
+            console.log('AuthContext: Could not load trait scores:', err);
+          });
       })
       .catch((err: any) => {
         console.warn('No active session:', err);
