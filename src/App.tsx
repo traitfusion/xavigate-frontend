@@ -200,7 +200,15 @@ function AppContent() {
       }
 
       const data = await response.json();
+      console.log('=== MN TEST RESPONSE DEBUG ===');
+      console.log('Raw response data:', data);
+      console.log('Type of data:', typeof data);
+      console.log('Has traitScores property:', 'traitScores' in data);
+      console.log('data.traitScores:', data?.traitScores);
+      console.log('================================');
+      
       if (data?.traitScores) {
+        console.log('Setting trait scores:', data.traitScores);
         setTraitScores(data.traitScores);
         setDataSource('primary');
         setConnectionStatus({
@@ -208,6 +216,7 @@ function AppContent() {
           message: 'Scores loaded'
         });
       } else {
+        console.log('No traitScores found in response');
         setConnectionStatus({
           status: 'error',
           message: 'No saved scores found.',
@@ -238,6 +247,7 @@ function AppContent() {
     console.log('User UUID:', user?.uuid);
     console.log('Backend URL:', '/api (proxied to chat.xavigate.com)');
     console.log('Trait Scores Count:', traitScores ? Object.keys(traitScores).length : 0);
+    console.log('Trait Scores Object:', traitScores);
     console.log('Data Source:', dataSource);
     console.log('Connection Status:', connectionStatus.status);
     console.log('=================');
@@ -276,6 +286,7 @@ function AppContent() {
       case 'account':
         return <AccountView />;
       case 'mntest':
+        // Don't render MNTESTView while we're still checking for scores
         if (connectionStatus.status === 'loading') {
           return (
             <ConnectionStatus
@@ -284,30 +295,9 @@ function AppContent() {
             />
           );
         }
-        if (connectionStatus.status === 'error') {
-          return (
-            <div style={{ padding: '0 32px', textAlign: 'center' }}>
-              <ConnectionStatus
-                status="error"
-                message={connectionStatus.message}
-                onRetry={connectionStatus.onRetry}
-              />
-              <p>You don't have any saved scores. Would you like to take the MN Test now?</p>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setConnectionStatus({ status: 'idle' });
-                  setDataSource(null);
-                  setTraitScores({});
-                }}
-                style={{ marginTop: '1rem' }}
-              >
-                Take the Test
-              </Button>
-            </div>
-          );
-        }
-        if (traitScores && Object.keys(traitScores).length > 0) {
+        
+        // If we successfully loaded scores, show the profile
+        if (traitScores && Object.keys(traitScores).length > 0 && !forceRetake) {
           return (
             <div style={{ padding: 0, margin: 0 }}>
               <div style={{
@@ -334,10 +324,13 @@ function AppContent() {
             </div>
           );
         }
+        
+        // Otherwise show the test form (either no scores or forceRetake)
         return (
           <MNTESTView
             forceRetake={forceRetake}
             onComplete={(scores) => {
+              console.log('MNTESTView onComplete called with scores:', scores);
               setTraitScores(scores);
               setDataSource('primary');
               setForceRetake(false);
@@ -480,6 +473,7 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/admin/config" element={<ConfigPanel />} />
           <Route path="/*" element={<AppContent />} />
         </Route>
       </Routes>
