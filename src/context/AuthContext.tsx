@@ -21,6 +21,7 @@ type User = {
   email?: string;
   avatarProfile?: AvatarProfile;
   onboardingCompleted?: boolean;
+  traitScores?: Record<string, number>;
 };
 
 interface AuthContextType {
@@ -33,6 +34,7 @@ interface AuthContextType {
   signOut: () => void;
   refresh: () => Promise<void>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  updateTraitScores: (scores: Record<string, number>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,6 +124,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateTraitScores = (scores: Record<string, number>) => {
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      return { ...prevUser, traitScores: scores };
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -134,6 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         refresh,
         setUser,
+        updateTraitScores,
       }}
     >
       {children}

@@ -144,20 +144,20 @@ function HelpCenter() {
 }
 
 function AppContent() {
-  const { user, ready, idToken } = useAuth();
+  const { user, ready, idToken, updateTraitScores } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [activeView, setActiveView] = useState(() => localStorage.getItem('activeView') || 'chat');
-  const [traitScores, setTraitScores] = useState<Record<string, number> | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusProps>({ status: 'idle' });
   const [dataSource, setDataSource] = useState<'primary' | 'fallback' | 'generated' | null>(null);
   const [forceRetake, setForceRetake] = useState(false);
   const [initialFetchComplete, setInitialFetchComplete] = useState(false);
   
-  console.log('🚀 AppContent render - traitScores:', traitScores);
+  const traitScores = user?.traitScores || null;
+  console.log('🚀 AppContent render - traitScores from user:', traitScores);
 
   // Auth token from environment or fallback
   const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
@@ -192,7 +192,7 @@ function AppContent() {
       
       if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
         console.log('✅ Found trait scores:', result.traitScores);
-        setTraitScores(result.traitScores);
+        updateTraitScores(result.traitScores);
         setDataSource('primary');
         setConnectionStatus({
           status: 'success',
@@ -322,7 +322,7 @@ function AppContent() {
                 <Button
                   variant="primary"
                   onClick={() => {
-                    setTraitScores(null);
+                    updateTraitScores({});
                     setConnectionStatus({ status: 'idle' });
                     setDataSource(null);
                     setForceRetake(true);
@@ -343,7 +343,7 @@ function AppContent() {
             forceRetake={forceRetake}
             onComplete={(scores) => {
               console.log('MNTESTView onComplete called with scores:', scores);
-              setTraitScores(scores);
+              updateTraitScores(scores);
               setDataSource('primary');
               setForceRetake(false);
               setConnectionStatus({ status: 'success', message: 'Test complete' });
