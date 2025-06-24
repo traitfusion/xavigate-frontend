@@ -16,7 +16,7 @@ git pull
 
 # Install dependencies if package.json changed
 echo "📦 Installing dependencies..."
-npm install
+npm install --legacy-peer-deps
 
 # Build the frontend
 echo "🔨 Building frontend..."
