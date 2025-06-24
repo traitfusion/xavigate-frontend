@@ -107,8 +107,16 @@ function AppContent() {
     console.log('Trait Scores:', traitScores);
     console.log('Scores Loading:', scoresLoading);
     console.log('Active View:', activeView);
+    console.log('Ready:', ready);
     console.log('=================');
-  }, [user, traitScores, scoresLoading, activeView]);
+  }, [user, traitScores, scoresLoading, activeView, ready]);
+  
+  // Log when scores actually arrive
+  useEffect(() => {
+    if (user?.traitScores) {
+      console.log('🎉 SCORES ARRIVED IN APP:', user.traitScores);
+    }
+  }, [user?.traitScores]);
 
   const isContentPage = ['/about', '/privacy', '/terms', '/help'].includes(location.pathname);
 
@@ -142,8 +150,10 @@ function AppContent() {
       case 'account':
         return <AccountView />;
       case 'mntest':
-        // Show loading state while checking for scores
-        if (scoresLoading) {
+        console.log('🎮 MNTEST VIEW - ready:', ready, 'scoresLoading:', scoresLoading, 'traitScores:', traitScores);
+        
+        // Show loading state while checking for scores OR if auth isn't ready
+        if (!ready || scoresLoading) {
           return (
             <div style={{ padding: '2rem', textAlign: 'center' }}>
               <div style={{ marginBottom: '1rem' }}>
@@ -156,6 +166,7 @@ function AppContent() {
         
         // If we have scores and not forcing retake, show profile
         if (traitScores && Object.keys(traitScores).length > 0 && !forceRetake) {
+          console.log('🎮 Showing profile view with scores');
           return (
             <div style={{ padding: 0, margin: 0 }}>
               <div style={{
@@ -182,6 +193,7 @@ function AppContent() {
         }
         
         // Otherwise show the test form
+        console.log('🎮 Showing test form - no scores found or forceRetake:', forceRetake);
         return (
           <MNTESTView
             forceRetake={forceRetake}

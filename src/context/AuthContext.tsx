@@ -91,7 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .then(result => {
             if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
               console.log('🎯 AuthContext: Loaded trait scores:', result.traitScores);
-              setUser(prev => prev ? { ...prev, traitScores: result.traitScores } : null);
+              setUser(prev => {
+                console.log('🔄 Updating user state with scores, prev:', prev);
+                const updated = prev ? { ...prev, traitScores: result.traitScores } : null;
+                console.log('🔄 Updated user:', updated);
+                return updated;
+              });
             } else {
               console.log('📝 AuthContext: No trait scores found for user');
             }
@@ -147,9 +152,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTraitScores = (scores: Record<string, number>) => {
+    console.log('🔧 updateTraitScores called with:', scores);
     setUser(prevUser => {
       if (!prevUser) return null;
-      return { ...prevUser, traitScores: scores };
+      const updated = { ...prevUser, traitScores: scores };
+      console.log('🔧 Updated user with scores:', updated);
+      return updated;
     });
   };
 
