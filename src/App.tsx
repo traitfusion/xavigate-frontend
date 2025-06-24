@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate, Navigate, Outlet } from 'react-router-dom';
 
 import './i18n';
@@ -162,6 +162,9 @@ function AppContent() {
   // Auth token from environment or fallback
   const AUTH_TOKEN = import.meta.env?.VITE_AUTH_TOKEN || 'foo';
 
+  // Track if component is mounted
+  const mountedRef = useRef(true);
+  
   // Check backend for saved MN Test scores
   const fetchTraitScores = async () => {
     const uid = user?.uuid;
@@ -181,6 +184,12 @@ function AppContent() {
       const result = await fetchUserProfile(uid, token);
       console.log('📡 fetchUserProfile result:', result);
       
+      // Check if component is still mounted before updating state
+      if (!mountedRef.current) {
+        console.log('⚠️ Component unmounted, skipping state update');
+        return;
+      }
+      
       if (result?.traitScores && Object.keys(result.traitScores).length > 0) {
         console.log('✅ Found trait scores:', result.traitScores);
         setTraitScores(result.traitScores);
@@ -199,31 +208,40 @@ function AppContent() {
       }
     } catch (error) {
       console.error('❌ Error fetching scores:', error);
-      setConnectionStatus({
-        status: 'error',
-        message: 'Error fetching scores.',
-        onRetry: fetchTraitScores
-      });
+      if (mountedRef.current) {
+        setConnectionStatus({
+          status: 'error',
+          message: 'Error fetching scores.',
+          onRetry: fetchTraitScores
+        });
+      }
     } finally {
-      setInitialFetchComplete(true);
-      console.log('🏁 fetchTraitScores complete, initialFetchComplete set to true');
+      if (mountedRef.current) {
+        setInitialFetchComplete(true);
+        console.log('🏁 fetchTraitScores complete, initialFetchComplete set to true');
+      }
     }
   };
   // Load trait scores on initialization
   useEffect(() => {
-    if (user?.uuid) {
-      console.log('📍 User UUID available, checking initialFetchComplete:', initialFetchComplete);
-      if (!initialFetchComplete) {
+    mountedRef.current = true;
+    
+    // Add a small delay to ensure component is stable after auth
+    const timeoutId = setTimeout(() => {
+      if (user?.uuid && !initialFetchComplete && mountedRef.current) {
+        console.log('📍 User UUID available, checking initialFetchComplete:', initialFetchComplete);
         console.log('📍 Triggering fetchTraitScores from useEffect');
         fetchTraitScores();
       }
-    }
+    }, 100);
     
     return () => {
+      mountedRef.current = false;
+      clearTimeout(timeoutId);
       console.log('⚠️ AppContent component unmounting!');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uuid, initialFetchComplete]);
+  }, [user?.uuid]);
 
   // Debug logging
   useEffect(() => {
