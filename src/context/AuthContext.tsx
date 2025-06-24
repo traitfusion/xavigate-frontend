@@ -8,7 +8,7 @@ import React, {
 import {
   fetchAuthSession,
   signOut as amplifySignOut,
-} from '@aws-amplify/auth';
+} from 'aws-amplify/auth';
 
 type AvatarProfile = {
   avatar_id: string;

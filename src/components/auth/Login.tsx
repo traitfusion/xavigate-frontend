@@ -18,7 +18,7 @@ export default function Login() {
     try {
       // 1) Clear any stale authenticated session
       try {
-        await Auth.currentAuthenticatedUser();
+        await Auth.getCurrentUser();
         await Auth.signOut();
       } catch {
         // no existing user session to clear

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as Auth from '@aws-amplify/auth';
+import * as Auth from 'aws-amplify/auth';
 import { Link } from 'react-router-dom';
 import { Card, Form, FormGroup, Input, Button, Text } from '@/design-system/components';
 import Icon from '@/design-system/components/Icon';
